@@ -105,19 +105,15 @@ async def lifespan(app: FastAPI):
         init_whatsapp_client(
             settings.twilio_account_sid,
             settings.twilio_auth_token,
-            settings.twilio_wa_number,
-            settings.owner_wa_number
+            settings.twilio_wa_number
         )
         print("WhatsApp client initialized")
     else:
         print("WhatsApp client not configured")
     
     # Initialize iMessage client
-    if settings.photon_base_url and settings.photon_to:
-        init_imessage_client(
-            settings.photon_base_url,
-            settings.photon_to
-        )
+    if settings.photon_base_url:
+        init_imessage_client(settings.photon_base_url)
         print("iMessage client initialized")
     else:
         print("iMessage client not configured")
@@ -256,18 +252,36 @@ async def receive_candidate(
     # Send prompts
     sent_channels = []
     
-    if can_send_wa:
+    # Send WhatsApp prompt if configured and owner number provided
+    if can_send_wa and candidate.owner_whatsapp:
         try:
             wa_client = get_whatsapp_client()
-            wa_client.send_approval_prompt(candidate)
+            wa_client.send_approval_prompt(candidate, candidate.owner_whatsapp)
+            sent_channels.append("whatsapp")
+        except Exception as e:
+            print(f"Failed to send WhatsApp prompt: {e}")
+    elif can_send_wa and not candidate.owner_whatsapp and settings.owner_wa_number:
+        # Fallback to default owner number from env (for backward compatibility)
+        try:
+            wa_client = get_whatsapp_client()
+            wa_client.send_approval_prompt(candidate, settings.owner_wa_number)
             sent_channels.append("whatsapp")
         except Exception as e:
             print(f"Failed to send WhatsApp prompt: {e}")
     
-    if can_send_imsg:
+    # Send iMessage prompt if configured and owner address provided
+    if can_send_imsg and candidate.owner_imessage:
         try:
             imsg_client = get_imessage_client()
-            await imsg_client.send_approval_prompt(candidate)
+            await imsg_client.send_approval_prompt(candidate, candidate.owner_imessage)
+            sent_channels.append("imessage")
+        except Exception as e:
+            print(f"Failed to send iMessage prompt: {e}")
+    elif can_send_imsg and not candidate.owner_imessage and settings.photon_to:
+        # Fallback to default recipient from env (for backward compatibility)
+        try:
+            imsg_client = get_imessage_client()
+            await imsg_client.send_approval_prompt(candidate, settings.photon_to)
             sent_channels.append("imessage")
         except Exception as e:
             print(f"Failed to send iMessage prompt: {e}")

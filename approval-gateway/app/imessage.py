@@ -16,28 +16,27 @@ class iMessageClient:
     at the configured base URL.
     """
 
-    def __init__(self, base_url: str, recipient: str):
+    def __init__(self, base_url: str):
         """
         Initialize iMessage client.
         
         Args:
             base_url: Base URL of Photon iMessage Kit sidecar
-            recipient: Apple ID or phone number to send messages to
         """
         self.base_url = base_url.rstrip("/")
-        self.recipient = recipient
         self.http_client = httpx.AsyncClient(timeout=10.0)
 
     async def close(self):
         """Close HTTP client."""
         await self.http_client.aclose()
 
-    async def send_approval_prompt(self, candidate: Candidate) -> None:
+    async def send_approval_prompt(self, candidate: Candidate, recipient: str) -> None:
         """
         Send an approval prompt via iMessage.
         
         Args:
             candidate: Candidate to prompt for
+            recipient: Apple ID or phone number to send message to
         """
         message_text = (
             f"🤖 BrandPilot Reply\n\n"
@@ -61,7 +60,7 @@ class iMessageClient:
             response = await self.http_client.post(
                 f"{self.base_url}/send",
                 json={
-                    "recipient": self.recipient,
+                    "recipient": recipient,
                     "text": message_text
                 }
             )
@@ -138,9 +137,9 @@ def get_imessage_client() -> iMessageClient:
     return imessage_client
 
 
-def init_imessage_client(base_url: str, recipient: str) -> iMessageClient:
+def init_imessage_client(base_url: str) -> iMessageClient:
     """Initialize the global iMessage client."""
     global imessage_client
-    imessage_client = iMessageClient(base_url, recipient)
+    imessage_client = iMessageClient(base_url)
     return imessage_client
 

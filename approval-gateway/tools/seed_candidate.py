@@ -25,7 +25,9 @@ async def create_demo_candidate(base_url: str, secret: str):
         "persona": "smart",
         "context_url": "https://twitter.com/user/status/1234567890123456789",
         "risk_flags": [],
-        "deadline_sec": 900
+        "deadline_sec": 900,
+        "owner_whatsapp": None,  # Set to "whatsapp:+15551234567" to override env default
+        "owner_imessage": None   # Set to "user@example.com" to override env default
     }
     
     headers = {
@@ -94,7 +96,9 @@ async def create_multiple_candidates(base_url: str, secret: str, count: int):
             "persona": personas[i % len(personas)],
             "context_url": f"https://example.com/post/{1234567890 + i}",
             "risk_flags": ["politics"] if i == 3 else [],
-            "deadline_sec": 900
+            "deadline_sec": 900,
+            "owner_whatsapp": None,  # Uses env default
+            "owner_imessage": None   # Uses env default
         }
         
         headers = {

@@ -21,11 +21,11 @@ class Settings(BaseSettings):
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_wa_number: str = ""
-    owner_wa_number: str = ""
+    owner_wa_number: str = ""  # Fallback default if candidate.owner_whatsapp not provided
     
     # Photon iMessage Kit
     photon_base_url: str = "http://localhost:5173"
-    photon_to: str = ""
+    photon_to: str = ""  # Fallback default if candidate.owner_imessage not provided
     
     # Security
     webhook_signing_secret: str = "change-me-in-production"

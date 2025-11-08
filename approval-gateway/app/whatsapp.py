@@ -20,8 +20,7 @@ class WhatsAppClient:
         self,
         account_sid: str,
         auth_token: str,
-        from_number: str,
-        to_number: str
+        from_number: str
     ):
         """
         Initialize Twilio WhatsApp client.
@@ -30,19 +29,18 @@ class WhatsAppClient:
             account_sid: Twilio account SID
             auth_token: Twilio auth token
             from_number: WhatsApp-enabled Twilio number (format: whatsapp:+1...)
-            to_number: Owner's WhatsApp number (format: whatsapp:+1...)
         """
         self.client = Client(account_sid, auth_token)
         self.from_number = from_number
-        self.to_number = to_number
         self.validator = RequestValidator(auth_token)
 
-    def send_approval_prompt(self, candidate: Candidate) -> str:
+    def send_approval_prompt(self, candidate: Candidate, to_number: str) -> str:
         """
         Send an approval prompt for a candidate reply.
         
         Args:
             candidate: Candidate to prompt for
+            to_number: Recipient's WhatsApp number (format: whatsapp:+1...)
             
         Returns:
             Twilio message SID
@@ -53,7 +51,7 @@ class WhatsAppClient:
             context_snippet += "..."
         
         message_body = (
-            f"🤖 *BrandPilot Reply*\n\n"
+            f"*BrandPilot Reply*\n\n"
             f"ID: `{candidate.id}`\n"
             f"Platform: {candidate.platform.upper()}\n"
             f"Persona: {candidate.persona}\n\n"
@@ -66,13 +64,13 @@ class WhatsAppClient:
         )
         
         if candidate.risk_flags:
-            message_body += f"\n\n⚠️ *Risks:* {', '.join(candidate.risk_flags)}"
+            message_body += f"\n\n *Risks:* {', '.join(candidate.risk_flags)}"
         
         try:
             message = self.client.messages.create(
                 body=message_body,
                 from_=self.from_number,
-                to=self.to_number
+                to=to_number
             )
             return message.sid
         except Exception as e:
@@ -170,11 +168,10 @@ def get_whatsapp_client() -> WhatsAppClient:
 def init_whatsapp_client(
     account_sid: str,
     auth_token: str,
-    from_number: str,
-    to_number: str
+    from_number: str
 ) -> WhatsAppClient:
     """Initialize the global WhatsApp client."""
     global whatsapp_client
-    whatsapp_client = WhatsAppClient(account_sid, auth_token, from_number, to_number)
+    whatsapp_client = WhatsAppClient(account_sid, auth_token, from_number)
     return whatsapp_client
 

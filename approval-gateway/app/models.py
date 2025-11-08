@@ -20,6 +20,8 @@ class Candidate(BaseModel):
     context_url: AnyUrl = Field(..., description="Link to original post")
     risk_flags: list[str] = Field(default_factory=list, description="Detected risk flags")
     deadline_sec: int = Field(default=900, description="Seconds until auto-expire")
+    owner_whatsapp: str | None = Field(None, description="Owner's WhatsApp number (format: whatsapp:+1...)")
+    owner_imessage: str | None = Field(None, description="Owner's iMessage email or phone")
 
     class Config:
         json_schema_extra = {
@@ -32,7 +34,9 @@ class Candidate(BaseModel):
                 "persona": "smart",
                 "context_url": "https://twitter.com/user/status/1234567890",
                 "risk_flags": [],
-                "deadline_sec": 900
+                "deadline_sec": 900,
+                "owner_whatsapp": "whatsapp:+15551234567",
+                "owner_imessage": "owner@example.com"
             }
         }
 
