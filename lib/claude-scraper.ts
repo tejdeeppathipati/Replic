@@ -62,7 +62,7 @@ export async function extractBrandInfoFromWebsite(
       messages: [
         {
           role: "user",
-          content: `Analyze this website content comprehensively to understand the brand, company, and business. Extract everything meaningful and provide intelligent follow-up questions. Respond ONLY with valid JSON (no markdown, no extra text).
+          content: `Analyze this website content comprehensively to understand the brand, company, and business. Extract everything meaningful. Respond ONLY with valid JSON (no markdown, no extra text).
 
 Website Content:
 ${plainText}
@@ -70,10 +70,10 @@ ${plainText}
 ANALYZE DEEPLY AND EXTRACT:
 1. A comprehensive summary of what this company/brand does
 2. Key insights about their business model, market position, and strategy
-3. Identify what information would be most helpful to ask the user about this business
-4. Extract any other relevant structured data you find (company size, industry, tone, etc.)
+3. THREE specific follow-up questions to understand their brand identity
+4. Any other relevant structured data you find (company size, industry, tone, etc.)
 
-Return ONLY this JSON structure:
+Return ONLY this JSON structure with EXACTLY 3 suggested questions:
 {
   "summary": "2-3 paragraph comprehensive summary of the company, what they do, who they serve, and how they operate",
   "key_insights": [
@@ -84,11 +84,9 @@ Return ONLY this JSON structure:
     "insight 5 about their market or approach"
   ],
   "suggested_questions": [
-    "What is your primary business objective for content marketing?",
-    "Can you elaborate on your target customer segments?",
-    "What are your key success metrics?",
+    "What is your primary business objective for content?",
     "What tone and style best represents your brand?",
-    "Are there specific topics or themes you want to focus on?"
+    "What are the top 3 topics or themes you want to focus on?"
   ],
   "raw_analysis": {
     "company_name": "company name if found",
@@ -102,10 +100,11 @@ Return ONLY this JSON structure:
   }
 }
 
-IMPORTANT:
-- Be comprehensive and insightful
+CRITICAL REQUIREMENTS:
+- The suggested_questions array MUST have EXACTLY 3 questions
+- Be comprehensive and insightful in the summary
 - The summary should give complete context about the business
-- Suggested questions should be specific to help understand THEIR unique brand identity
+- Suggested questions should be concise and actionable
 - Extract anything meaningful in raw_analysis
 - Return ONLY the JSON object, no other text or markdown`,
         },

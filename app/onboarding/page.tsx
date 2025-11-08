@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Twitter, ChevronRight, ChevronLeft, Check, AlertCircle, Loader2 } from "lucide-react";
@@ -15,6 +15,13 @@ const TOTAL_STEPS = 3;
 export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Clear old localStorage data on component mount to ensure fresh start
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("brandpilot_config");
+    }
+  }, []);
 
   // Step 1 - Website
   const [website, setWebsite] = useState("");
@@ -425,26 +432,117 @@ export default function OnboardingPage() {
                   <div className="border-t pt-6">
                     <h3 className="font-mono font-semibold text-base mb-4 text-neutral-900">Website Analysis Questions</h3>
                     <p className="text-xs font-mono text-neutral-500 mb-4">Based on our analysis of your website, answer these questions to help us understand your brand better</p>
-                    <div className="space-y-4">
-                      {suggestedQuestions.map((question, index) => (
-                        <div key={index} className="space-y-2">
-                          <Label htmlFor={`question_${index}`} className="font-mono text-sm">
-                            Q{index + 1}: {question}
-                          </Label>
-                          <textarea
-                            id={`question_${index}`}
-                            value={questionResponses[`question_${index}`] || ""}
-                            onChange={(e) =>
-                              setQuestionResponses({
-                                ...questionResponses,
-                                [`question_${index}`]: e.target.value,
-                              })
-                            }
-                            className="w-full min-h-16 p-3 border rounded-md font-mono text-sm"
-                            placeholder="Your answer..."
-                          />
-                        </div>
-                      ))}
+                    <div className="space-y-6">
+                      {suggestedQuestions.map((question, index) => {
+                        // Define dropdown options for each question
+                        let options: string[] = [];
+                        if (index === 0) {
+                          // Question 1: Business objective
+                          options = [
+                            "Brand awareness",
+                            "Lead generation",
+                            "Sales/Revenue",
+                            "Community engagement",
+                            "Thought leadership",
+                            "Customer retention",
+                          ];
+                        } else if (index === 1) {
+                          // Question 2: Tone and style
+                          options = [
+                            "Professional & formal",
+                            "Casual & friendly",
+                            "Technical & detailed",
+                            "Creative & innovative",
+                            "Educational & informative",
+                            "Inspiring & motivational",
+                            "Humorous & entertaining",
+                          ];
+                        } else if (index === 2) {
+                          // Question 3: Content themes (allow multiple selections)
+                          options = [
+                            "Industry insights & trends",
+                            "Product updates & launches",
+                            "Customer success stories",
+                            "Tips & tutorials",
+                            "Behind-the-scenes content",
+                            "Company news & announcements",
+                            "Thought leadership & opinion",
+                            "Educational resources",
+                          ];
+                        }
+
+                        return (
+                          <div key={index} className="space-y-2">
+                            <Label htmlFor={`question_${index}`} className="font-mono text-sm font-semibold">
+                              Q{index + 1}: {question}
+                            </Label>
+                            {index === 2 ? (
+                              // Multi-select for question 3
+                              <div className="grid grid-cols-2 gap-3">
+                                {options.map((option) => (
+                                  <div key={option} className="flex items-center">
+                                    <input
+                                      type="checkbox"
+                                      id={`q${index}_${option}`}
+                                      value={option}
+                                      checked={
+                                        questionResponses[`question_${index}`]
+                                          ?.split(",")
+                                          .includes(option) || false
+                                      }
+                                      onChange={(e) => {
+                                        const currentValue = questionResponses[`question_${index}`] || "";
+                                        const currentOptions = currentValue
+                                          ? currentValue.split(",").map((s) => s.trim())
+                                          : [];
+
+                                        let newOptions: string[];
+                                        if (e.target.checked) {
+                                          newOptions = [...currentOptions, option];
+                                        } else {
+                                          newOptions = currentOptions.filter((o) => o !== option);
+                                        }
+
+                                        setQuestionResponses({
+                                          ...questionResponses,
+                                          [`question_${index}`]: newOptions.join(", "),
+                                        });
+                                      }}
+                                      className="w-4 h-4 cursor-pointer"
+                                    />
+                                    <label htmlFor={`q${index}_${option}`} className="ml-2 text-sm font-mono cursor-pointer">
+                                      {option}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              // Single select dropdown for questions 1 and 2
+                              <select
+                                id={`question_${index}`}
+                                value={questionResponses[`question_${index}`] || ""}
+                                onChange={(e) =>
+                                  setQuestionResponses({
+                                    ...questionResponses,
+                                    [`question_${index}`]: e.target.value,
+                                  })
+                                }
+                                className="w-full p-3 border rounded-md font-mono text-sm bg-white cursor-pointer"
+                              >
+                                <option value="">Select an option...</option>
+                                {options.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            {index < suggestedQuestions.length - 1 && (
+                              <p className="text-xs text-neutral-400 font-mono mt-2" />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
