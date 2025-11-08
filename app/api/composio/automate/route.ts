@@ -1,0 +1,114 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  autoPostTweet,
+  autoPostReddit,
+  autoPostMultiPlatform,
+  checkUserConnections,
+} from "@/lib/composio-automation";
+
+/**
+ * API Route: POST /api/composio/automate
+ * Automates social media posts using Claude + Composio
+ * 
+ * Body: {
+ *   userId: string,
+ *   action: "tweet" | "reddit" | "multi",
+ *   companyInfo: string,
+ *   topic: string,
+ *   subreddit?: string (required for reddit and multi)
+ * }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { userId, action, companyInfo, topic, subreddit } = body;
+
+    // Validate input
+    if (!userId || !action || !companyInfo || !topic) {
+      return NextResponse.json(
+        { error: "Missing required fields: userId, action, companyInfo, topic" },
+        { status: 400 }
+      );
+    }
+
+    // Check user connections
+    const connections = await checkUserConnections(userId);
+
+    if (!connections.canAutomate) {
+      return NextResponse.json(
+        { error: "No active connections. Please connect Twitter or Reddit first." },
+        { status: 400 }
+      );
+    }
+
+    let result;
+
+    switch (action) {
+      case "tweet":
+        if (!connections.hasTwitter) {
+          return NextResponse.json(
+            { error: "Twitter not connected" },
+            { status: 400 }
+          );
+        }
+        result = await autoPostTweet(userId, companyInfo, topic);
+        break;
+
+      case "reddit":
+        if (!connections.hasReddit) {
+          return NextResponse.json(
+            { error: "Reddit not connected" },
+            { status: 400 }
+          );
+        }
+        if (!subreddit) {
+          return NextResponse.json(
+            { error: "subreddit is required for Reddit posts" },
+            { status: 400 }
+          );
+        }
+        result = await autoPostReddit(userId, subreddit, companyInfo, topic);
+        break;
+
+      case "multi":
+        if (!connections.hasTwitter || !connections.hasReddit) {
+          return NextResponse.json(
+            { error: "Both Twitter and Reddit must be connected for multi-platform posting" },
+            { status: 400 }
+          );
+        }
+        if (!subreddit) {
+          return NextResponse.json(
+            { error: "subreddit is required for multi-platform posts" },
+            { status: 400 }
+          );
+        }
+        result = await autoPostMultiPlatform(
+          userId,
+          companyInfo,
+          topic,
+          subreddit
+        );
+        break;
+
+      default:
+        return NextResponse.json(
+          { error: "Invalid action. Must be: tweet, reddit, or multi" },
+          { status: 400 }
+        );
+    }
+
+    return NextResponse.json({
+      success: true,
+      action,
+      result,
+    });
+  } catch (error: any) {
+    console.error("Error automating post:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to automate post" },
+      { status: 500 }
+    );
+  }
+}
+

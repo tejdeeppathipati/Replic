@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
+    "@composio/anthropic": "^0.2.3",
+    "@composio/core": "^0.2.3",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.2.4",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.80.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
