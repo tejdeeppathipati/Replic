@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Card } from "@/components/ui/card";
 
 const integrations = [
-  { name: "X (Twitter)", icon: "/icons/twitter.png" },
+  { name: "X", icon: "/icons/twitter.png" },
   { name: "Reddit", icon: "/icons/reddit.png" },
   { name: "WhatsApp", icon: "/icons/whatsapp.png" },
   { name: "iMessage", icon: "/icons/messages.png" },

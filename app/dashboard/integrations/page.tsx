@@ -6,7 +6,7 @@ import Image from "next/image";
 
 const integrations = [
   {
-    name: "X (Twitter)",
+    name: "X",
     description: "Connect your X account to post and engage",
     icon: "/icons/twitter.png",
   },
