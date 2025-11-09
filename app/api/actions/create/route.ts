@@ -66,11 +66,12 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    console.log(`✅ [CREATE ACTION] Created action: ${data.id}`);
+    const actionData = data as any;
+    console.log(`✅ [CREATE ACTION] Created action: ${actionData?.id}`);
 
     return NextResponse.json({
       success: true,
-      action: data,
+      action: actionData,
     });
   } catch (error: any) {
     console.error("❌ [CREATE ACTION] Error:", error);
