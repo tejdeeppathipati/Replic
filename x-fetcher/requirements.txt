@@ -1,0 +1,21 @@
+# Core dependencies
+fastapi==0.115.5
+uvicorn[standard]==0.34.0
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# HTTP client
+httpx==0.28.1
+
+# Composio SDK (for token management)
+composio-core==0.5.0
+
+# Redis (for state management)
+redis==5.2.0
+
+# Background tasks
+apscheduler==3.10.4
+
+# Utilities
+python-dotenv==1.0.1
+

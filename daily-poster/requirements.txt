@@ -1,0 +1,21 @@
+# Core dependencies
+fastapi==0.115.5
+uvicorn[standard]==0.34.0
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# HTTP client (compatible with supabase)
+httpx>=0.26,<0.28
+
+# Database
+supabase==2.9.0
+
+# Utilities
+python-dotenv==1.0.1
+
+# Scheduling
+apscheduler==3.10.4
+
+# Composio for posting to X
+composio-core==0.5.0
+
