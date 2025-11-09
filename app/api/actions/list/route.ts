@@ -33,23 +33,24 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    console.log(`✅ [LIST ACTIONS] Found ${data?.length || 0} actions`);
+    const actionsData = (data as any) || [];
+    console.log(`✅ [LIST ACTIONS] Found ${actionsData.length} actions`);
 
     // Group by status
-    const pending = data?.filter((a) => a.status === "pending") || [];
-    const completed = data?.filter((a) => a.status === "completed") || [];
-    const paused = data?.filter((a) => a.status === "paused") || [];
+    const pending = actionsData.filter((a: any) => a.status === "pending") || [];
+    const completed = actionsData.filter((a: any) => a.status === "completed") || [];
+    const paused = actionsData.filter((a: any) => a.status === "paused") || [];
 
     return NextResponse.json({
       success: true,
-      actions: data,
+      actions: actionsData,
       grouped: {
         pending,
         completed,
         paused,
       },
       stats: {
-        total: data?.length || 0,
+        total: actionsData.length,
         pending: pending.length,
         completed: completed.length,
         paused: paused.length,

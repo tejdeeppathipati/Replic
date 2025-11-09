@@ -51,11 +51,12 @@ export async function PUT(request: NextRequest) {
       throw error;
     }
 
+    const actionData = data as any;
     console.log(`✅ [UPDATE ACTION] Updated action: ${id}`);
 
     return NextResponse.json({
       success: true,
-      action: data,
+      action: actionData,
     });
   } catch (error: any) {
     console.error("❌ [UPDATE ACTION] Error:", error);

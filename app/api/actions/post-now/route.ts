@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (action.status === "completed") {
+    const actionData = action as any;
+    if (actionData.status === "completed") {
       return NextResponse.json(
         { error: "Action already completed" },
         { status: 400 }
@@ -54,12 +55,12 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         action_id: id,
-        brand_id: action.brand_id,
-        action_type: action.action_type,
-        title: action.title,
-        description: action.description,
-        context: action.context,
-        tone: action.tone,
+        brand_id: actionData.brand_id,
+        action_type: actionData.action_type,
+        title: actionData.title,
+        description: actionData.description,
+        context: actionData.context,
+        tone: actionData.tone,
       }),
     });
 
