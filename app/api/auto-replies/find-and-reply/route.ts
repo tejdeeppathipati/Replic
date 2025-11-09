@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const tweetData = bestTweets as any;
+
     // Step 4: Generate reply for best tweet
     console.log("   Step 4: Generating reply...");
     const generateRes = await fetch(`${autoReplierUrl}/generate-reply`, {
@@ -94,9 +96,9 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         brand_id: brandId,
-        tweet_id: bestTweets.tweet_id,
-        tweet_text: bestTweets.tweet_text,
-        author_username: bestTweets.author_username,
+        tweet_id: tweetData.tweet_id,
+        tweet_text: tweetData.tweet_text,
+        author_username: tweetData.author_username,
       }),
     });
 
@@ -112,12 +114,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       tweet: {
-        id: bestTweets.tweet_id,
-        text: bestTweets.tweet_text,
-        author: bestTweets.author_username,
-        score: bestTweets.relevance_score,
-        trigger: bestTweets.trigger_type,
-        sentiment: bestTweets.sentiment,
+        id: tweetData.tweet_id,
+        text: tweetData.tweet_text,
+        author: tweetData.author_username,
+        score: tweetData.relevance_score,
+        trigger: tweetData.trigger_type,
+        sentiment: tweetData.sentiment,
       },
       reply: {
         text: generateData.generated_reply?.reply_text || "Reply generated",
