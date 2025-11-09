@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "npm rebuild lightningcss --update-binary || true"
+    "postinstall": "(npm rebuild lightningcss --update-binary || true) && (npm rebuild @tailwindcss/oxide --update-binary || true)"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -28,7 +28,8 @@
     "react-dom": "19.2.0",
     "tailwind-merge": "^3.3.1",
     "lightningcss": "^1.28.1",
-    "lightningcss-linux-x64-gnu": "^1.28.1"
+    "lightningcss-linux-x64-gnu": "^1.28.1",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
