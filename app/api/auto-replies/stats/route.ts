@@ -62,11 +62,12 @@ export async function GET(request: NextRequest) {
       .select("likes_count, retweets_count, replies_count, views_count")
       .eq("brand_id", brandId);
 
+    const engagementArray = (engagementData as any) || [];
     const totalEngagement = {
-      likes: engagementData?.reduce((sum, r) => sum + (r.likes_count || 0), 0) || 0,
-      retweets: engagementData?.reduce((sum, r) => sum + (r.retweets_count || 0), 0) || 0,
-      replies: engagementData?.reduce((sum, r) => sum + (r.replies_count || 0), 0) || 0,
-      views: engagementData?.reduce((sum, r) => sum + (r.views_count || 0), 0) || 0,
+      likes: engagementArray.reduce((sum: number, r: any) => sum + (r.likes_count || 0), 0) || 0,
+      retweets: engagementArray.reduce((sum: number, r: any) => sum + (r.retweets_count || 0), 0) || 0,
+      replies: engagementArray.reduce((sum: number, r: any) => sum + (r.replies_count || 0), 0) || 0,
+      views: engagementArray.reduce((sum: number, r: any) => sum + (r.views_count || 0), 0) || 0,
     };
 
     // Calculate success rate

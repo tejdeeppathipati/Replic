@@ -35,10 +35,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const repliesData = (data as any) || [];
+
     return NextResponse.json({
       success: true,
-      replies: data || [],
-      count: data?.length || 0,
+      replies: repliesData,
+      count: repliesData.length,
     });
   } catch (error: any) {
     console.error("Error in posted endpoint:", error);

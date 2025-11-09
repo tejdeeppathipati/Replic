@@ -88,8 +88,11 @@ export async function GET(request: NextRequest) {
       .limit(10);
 
     // Combine and sort by date
+    const actionsData = (recentActions as any) || [];
+    const dailyPostsData = (recentDailyPosts as any) || [];
+    
     const allRecentPosts = [
-      ...(recentActions || []).map((action) => ({
+      ...actionsData.map((action: any) => ({
         id: action.id,
         text: action.post_text || action.title,
         tweet_id: action.tweet_id,
@@ -98,7 +101,7 @@ export async function GET(request: NextRequest) {
         source: "action",
         action_type: action.action_type,
       })),
-      ...(recentDailyPosts || []).map((post) => ({
+      ...dailyPostsData.map((post: any) => ({
         id: post.id,
         text: post.content,
         tweet_id: post.tweet_id,
