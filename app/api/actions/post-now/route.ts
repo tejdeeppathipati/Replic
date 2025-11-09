@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
     console.log(`📤 [POST ACTION NOW] Calling daily-poster service...`);
 
     // Call daily-poster service to generate and post
-    const response = await fetch("http://localhost:8500/post-action", {
+    const dailyPosterUrl = process.env.DAILY_POSTER_URL || "http://localhost:8500";
+    const response = await fetch(`${dailyPosterUrl}/post-action`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: daily-poster
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: XAI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: COMPOSIO_API_KEY
+        sync: false
+      - key: POST_TIME_UTC
+        value: 09:00
+      - key: XAI_API_BASE
+        value: https://api.x.ai/v1
+      - key: XAI_MODEL
+        value: grok-3
+      - key: MAX_TOKENS
+        value: 100
+      - key: TEMPERATURE
+        value: 0.8
+

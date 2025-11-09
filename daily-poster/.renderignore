@@ -1,0 +1,18 @@
+# Render ignore file
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.env
+.env.local
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+*.md
+!README.md
+

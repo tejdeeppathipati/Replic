@@ -87,7 +87,8 @@ export default function ActivityFeedPage() {
     setTweetUrl(null);
 
     try {
-      const response = await fetch(`http://localhost:8500/post-now/${brandId.trim()}`, {
+      const dailyPosterUrl = process.env.NEXT_PUBLIC_DAILY_POSTER_URL || process.env.DAILY_POSTER_URL || "http://localhost:8500";
+      const response = await fetch(`${dailyPosterUrl}/post-now/${brandId.trim()}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

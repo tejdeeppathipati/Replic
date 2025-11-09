@@ -81,9 +81,14 @@ app = FastAPI(
 )
 
 # Add CORS middleware to allow frontend to call this service
+# In production, allow all origins (Vercel uses dynamic domains)
+# In development, only allow localhost
+import os
+is_production = os.getenv("ENVIRONMENT") == "production" or os.getenv("RENDER") == "true"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=["*"] if is_production else ["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
