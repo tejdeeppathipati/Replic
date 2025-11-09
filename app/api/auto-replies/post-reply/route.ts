@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
       .eq("brand_id", brandId)
       .single();
     
+    const tweet = (tweetData as any) || null;
+    
     // Post the reply via auto-replier service
     const response = await fetch(`${autoReplierUrl}/post-reply`, {
       method: "POST",
@@ -39,8 +41,8 @@ export async function POST(request: NextRequest) {
         brand_id: brandId,
         tweet_id: tweetId,
         reply_text: replyText,
-        original_tweet_text: tweetData?.tweet_text || "",
-        original_author: tweetData?.author_username || "",
+        original_tweet_text: tweet?.tweet_text || "",
+        original_author: tweet?.author_username || "",
       }),
     });
 

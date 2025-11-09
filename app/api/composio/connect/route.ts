@@ -28,11 +28,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the base URL from request or environment
+    const baseUrl = 
+      process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+      request.headers.get('origin') || 
+      (request.headers.get('host') ? `https://${request.headers.get('host')}` : null);
+    
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: "Could not determine callback URL. Please set NEXT_PUBLIC_APP_URL in environment variables." },
+        { status: 500 }
+      );
+    }
+    
+    const callbackUrl = `${baseUrl}/dashboard/integrations?connection=success`;
+
     // Initiate connection with Composio
     const result = await initiateConnection(
       userId,
       integration as IntegrationType,
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/integrations?connection=success`
+      callbackUrl
     );
 
     return NextResponse.json(result);

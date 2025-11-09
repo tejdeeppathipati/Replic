@@ -129,6 +129,25 @@ export function createSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  // During build time (Vercel), return a mock client if env vars are missing
+  // This allows the build to succeed, but you MUST add env vars in Vercel for runtime
+  const isBuildTime = process.env.VERCEL === '1' || process.env.NEXT_PHASE === 'phase-production-build';
+  if (isBuildTime && (!supabaseUrl || !supabaseAnonKey)) {
+    console.warn('⚠️  Supabase env vars missing during build. Using placeholder values.');
+    console.warn('⚠️  Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel settings!');
+    // Return a client with placeholder values - will fail at runtime if actually used
+    return createClient<Database>(
+      'https://placeholder.supabase.co',
+      'placeholder-key',
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        },
+      }
+    );
+  }
+
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
       'Missing Supabase environment variables. Please check your .env.local file.'
@@ -147,6 +166,24 @@ export function createSupabaseClient() {
 export function createSupabaseServerClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // During build time (Vercel), return a mock client if env vars are missing
+  // This allows the build to succeed, but you MUST add env vars in Vercel for runtime
+  const isBuildTime = process.env.VERCEL === '1' || process.env.NEXT_PHASE === 'phase-production-build';
+  if (isBuildTime && (!supabaseUrl || !supabaseAnonKey)) {
+    console.warn('⚠️  Supabase env vars missing during build. Using placeholder values.');
+    console.warn('⚠️  Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel settings!');
+    return createClient<Database>(
+      'https://placeholder.supabase.co',
+      'placeholder-key',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
+  }
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(

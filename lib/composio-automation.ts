@@ -9,16 +9,28 @@ import { Composio } from "@composio/core";
 import { AnthropicProvider } from "@composio/anthropic";
 import Anthropic from "@anthropic-ai/sdk";
 
-// Initialize Composio with Anthropic provider
-const composio = new Composio({
-  apiKey: process.env.COMPOSIO_API_KEY,
-  provider: new AnthropicProvider(),
-});
+// Lazy initialization to avoid build-time errors
+let composioInstance: Composio<AnthropicProvider> | null = null;
+let anthropicInstance: Anthropic | null = null;
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+function getComposio(): Composio<AnthropicProvider> {
+  if (!composioInstance) {
+    composioInstance = new Composio({
+      apiKey: process.env.COMPOSIO_API_KEY,
+      provider: new AnthropicProvider(),
+    });
+  }
+  return composioInstance;
+}
+
+function getAnthropic() {
+  if (!anthropicInstance) {
+    anthropicInstance = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropicInstance;
+}
 
 /**
  * Example 1: Generate and post a tweet using Claude
@@ -29,12 +41,14 @@ export async function autoPostTweet(
   postTopic: string
 ) {
   // Get Twitter tools for the user
+  const composio = getComposio();
   const tools = await composio.tools.get(userId, {
     toolkits: ["TWITTER"],
     limit: 10,
   });
 
   // Ask Claude to create and post a tweet
+  const anthropic = getAnthropic();
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     tools: tools,
@@ -72,12 +86,14 @@ export async function autoPostReddit(
   topic: string
 ) {
   // Get Reddit tools for the user
+  const composio = getComposio();
   const tools = await composio.tools.get(userId, {
     toolkits: ["REDDIT"],
     limit: 10,
   });
 
   // Ask Claude to create and post to Reddit
+  const anthropic = getAnthropic();
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     tools: tools,
@@ -117,12 +133,14 @@ export async function autoPostMultiPlatform(
   subreddit: string
 ) {
   // Get both Twitter and Reddit tools
+  const composio = getComposio();
   const tools = await composio.tools.get(userId, {
     toolkits: ["TWITTER", "REDDIT"],
     limit: 20,
   });
 
   // Ask Claude to create platform-specific posts
+  const anthropic = getAnthropic();
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     tools: tools,
@@ -160,12 +178,14 @@ export async function respondToRedditMentions(
   companyInfo: string
 ) {
   // Get Reddit tools
+  const composio = getComposio();
   const tools = await composio.tools.get(userId, {
     toolkits: ["REDDIT"],
     limit: 15,
   });
 
   // Ask Claude to find and respond to mentions
+  const anthropic = getAnthropic();
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     tools: tools,
@@ -207,11 +227,13 @@ export async function scheduledMarketingPost(
   }
 ) {
   // Get both platforms
+  const composio = getComposio();
   const tools = await composio.tools.get(userId, {
     toolkits: ["TWITTER", "REDDIT"],
     limit: 20,
   });
 
+  const anthropic = getAnthropic();
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     tools: tools,
@@ -259,11 +281,13 @@ export async function engageWithTrendingTopics(
   companyInfo: string,
   watchedKeywords: string[]
 ) {
+  const composio = getComposio();
   const tools = await composio.tools.get(userId, {
     toolkits: ["TWITTER", "REDDIT"],
     limit: 20,
   });
 
+  const anthropic = getAnthropic();
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     tools: tools,
@@ -296,6 +320,7 @@ Use the available tools to:
 
 // Export helper to check if user has required connections
 export async function checkUserConnections(userId: string) {
+  const composio = getComposio();
   const connections = await composio.connectedAccounts.list({
     userIds: [userId],
     statuses: ["ACTIVE"],

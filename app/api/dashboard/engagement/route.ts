@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
         );
 
         // Extract public_metrics from result
-        const tweetData = result.data || result || {};
-        const publicMetrics = tweetData.public_metrics || tweetData.metrics || {};
+        const tweetData = (result.data || result || {}) as any;
+        const publicMetrics = (tweetData.public_metrics || tweetData.metrics || {}) as any;
         
         const likes = publicMetrics.like_count || publicMetrics.likes || 0;
         const retweets = publicMetrics.retweet_count || publicMetrics.retweets || 0;

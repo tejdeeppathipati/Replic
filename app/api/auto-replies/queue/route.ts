@@ -34,20 +34,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const queueData = (data as any) || [];
+
     // Group by status
     const grouped = {
-      queued: data?.filter((r) => r.status === "queued") || [],
-      posting: data?.filter((r) => r.status === "posting") || [],
-      posted: data?.filter((r) => r.status === "posted") || [],
-      failed: data?.filter((r) => r.status === "failed") || [],
+      queued: queueData.filter((r: any) => r.status === "queued") || [],
+      posting: queueData.filter((r: any) => r.status === "posting") || [],
+      posted: queueData.filter((r: any) => r.status === "posted") || [],
+      failed: queueData.filter((r: any) => r.status === "failed") || [],
     };
 
     return NextResponse.json({
       success: true,
-      replies: data || [],
+      replies: queueData,
       grouped,
       counts: {
-        total: data?.length || 0,
+        total: queueData.length,
         queued: grouped.queued.length,
         posting: grouped.posting.length,
         posted: grouped.posted.length,

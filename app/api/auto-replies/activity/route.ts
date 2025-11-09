@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
     const activities: any[] = [];
 
     // Add monitored tweets
-    monitoredTweets?.forEach((tweet) => {
+    const tweetsData = (monitoredTweets as any) || [];
+    tweetsData.forEach((tweet: any) => {
       activities.push({
         type: "monitored",
         id: tweet.id,
@@ -64,7 +65,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Add queue items
-    queueItems?.forEach((item) => {
+    const queueData = (queueItems as any) || [];
+    queueData.forEach((item: any) => {
       activities.push({
         type: "queued",
         id: item.id,
@@ -80,7 +82,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Add posted replies
-    postedReplies?.forEach((reply) => {
+    const repliesData = (postedReplies as any) || [];
+    repliesData.forEach((reply: any) => {
       activities.push({
         type: "posted",
         id: reply.id,
@@ -105,9 +108,9 @@ export async function GET(request: NextRequest) {
       success: true,
       activities: activities.slice(0, limit),
       counts: {
-        monitored: monitoredTweets?.length || 0,
-        queued: queueItems?.length || 0,
-        posted: postedReplies?.length || 0,
+        monitored: tweetsData.length,
+        queued: queueData.length,
+        posted: repliesData.length,
       },
     });
   } catch (error: any) {

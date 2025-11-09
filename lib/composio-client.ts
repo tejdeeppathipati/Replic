@@ -1,12 +1,26 @@
 import { Composio } from "@composio/core";
 
-// Initialize Composio client with API key and toolkit versions
-export const composioClient = new Composio({
-  apiKey: process.env.COMPOSIO_API_KEY,
-  // Specify toolkit versions for manual tool execution
-  toolkitVersions: {
-    twitter: "20251024_00", // Version from Composio Playground
-    reddit: "20251024_00",  // Reddit version (same as Twitter)
+// Lazy initialization of Composio client to avoid build-time errors
+let composioClientInstance: Composio | null = null;
+
+function getComposioClient(): Composio {
+  if (!composioClientInstance) {
+    composioClientInstance = new Composio({
+      apiKey: process.env.COMPOSIO_API_KEY,
+      // Specify toolkit versions for manual tool execution
+      toolkitVersions: {
+        twitter: "20251024_00", // Version from Composio Playground
+        reddit: "20251024_00",  // Reddit version (same as Twitter)
+      },
+    });
+  }
+  return composioClientInstance;
+}
+
+// Export a getter function instead of direct instance
+export const composioClient = new Proxy({} as Composio, {
+  get(_target, prop) {
+    return getComposioClient()[prop as keyof Composio];
   },
 });
 
@@ -40,12 +54,26 @@ export async function initiateConnection(
   console.log(`\n🔗 [CONNECT] Initiating ${integration} connection for user: ${userId}`);
   console.log(`   Auth Config ID: ${authConfigId}`);
   
+  // Build callback URL if not provided
+  const finalCallbackUrl = callbackUrl || (() => {
+    // Try to get URL from environment or use a default
+    const baseUrl = 
+      process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+    
+    if (!baseUrl) {
+      throw new Error('NEXT_PUBLIC_APP_URL or VERCEL_URL must be set for OAuth callbacks');
+    }
+    
+    return `${baseUrl}/dashboard/integrations?connection=success`;
+  })();
+
   // Initiate the connection using the auth config
   const connectionRequest = await composioClient.connectedAccounts.initiate(
     userId,
     authConfigId,
     {
-      callbackUrl: callbackUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/integrations?connection=success`,
+      callbackUrl: finalCallbackUrl,
     }
   );
 
