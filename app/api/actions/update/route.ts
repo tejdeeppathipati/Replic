@@ -39,9 +39,9 @@ export async function PUT(request: NextRequest) {
     if (status !== undefined) updates.status = status;
 
     // Update the action
-    const { data, error } = await supabase
-      .from("content_actions")
-      .update(updates as any)
+    const { data, error } = await (supabase
+      .from("content_actions") as any)
+      .update(updates)
       .eq("id", id)
       .select()
       .single();
