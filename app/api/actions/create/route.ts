@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         context,
         tone,
         status: "pending",
-      })
+      } as any)
       .select()
       .single();
 
