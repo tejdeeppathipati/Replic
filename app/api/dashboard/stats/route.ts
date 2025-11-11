@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClient } from "@/lib/supabase";
+import { withBrandAuth } from "@/lib/api-auth";
 
 /**
  * API Route: GET /api/dashboard/stats?brandId=xxx
  * Get dashboard statistics for a brand
- * 
+ *
+ * SECURITY: Requires authentication and brand ownership verification
+ *
  * Returns:
  * - Total engagements (from engagement metrics)
  * - Queued posts (pending actions)
  * - Success rate (posted / total)
  * - Recent posts
  */
-export async function GET(request: NextRequest) {
+export const GET = withBrandAuth(async (request: NextRequest, user, brandId) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const brandId = searchParams.get("brandId");
-
-    if (!brandId) {
-      return NextResponse.json(
-        { error: "brandId is required" },
-        { status: 400 }
-      );
-    }
-
-    console.log(`📊 [DASHBOARD STATS] Fetching stats for brand: ${brandId}`);
+    console.log(`📊 [DASHBOARD STATS] Fetching stats for brand: ${brandId} by user: ${user.id}`);
 
     const supabase = createSupabaseClient();
 
@@ -150,5 +143,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

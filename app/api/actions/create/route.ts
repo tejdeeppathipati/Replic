@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClient } from "@/lib/supabase";
+import { withAuth } from "@/lib/api-auth";
+import { verifyBrandOwnership } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/actions/create
  * Create a new content action
+ *
+ * SECURITY: Requires authentication and brand ownership verification
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
     const {
@@ -17,8 +21,6 @@ export async function POST(request: NextRequest) {
       tone = "engaging",
     } = body;
 
-    console.log(`📝 [CREATE ACTION] Creating action for brand: ${brandId}`);
-
     // Validate required fields
     if (!brandId || !actionType || !title) {
       return NextResponse.json(
@@ -26,6 +28,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Verify user owns this brand
+    await verifyBrandOwnership(brandId, user.id);
+
+    console.log(`📝 [CREATE ACTION] Creating action for brand: ${brandId} by user: ${user.id}`);
 
     // Validate action type
     const validTypes = [
@@ -83,5 +90,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

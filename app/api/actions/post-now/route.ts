@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseClient } from "@/lib/supabase";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/actions/post-now
  * Manually trigger immediate posting of a specific action
+ *
+ * SECURITY: Requires authentication and brand ownership verification
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
     const { id } = body;
-
-    console.log(`🚀 [POST ACTION NOW] Triggering action: ${id}`);
 
     if (!id) {
       return NextResponse.json(
@@ -22,8 +23,8 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseClient();
 
     // Get the action details
-    const { data: action, error: fetchError } = await supabase
-      .from("content_actions")
+    const { data: action, error: fetchError } = await (supabase
+      .from("content_actions") as any)
       .select("*")
       .eq("id", id)
       .single();
@@ -37,6 +38,23 @@ export async function POST(request: NextRequest) {
     }
 
     const actionData = action as any;
+
+    // Verify brand ownership
+    const { data: brand, error: brandError } = await (supabase
+      .from("brand_agent") as any)
+      .select("id")
+      .eq("id", actionData.brand_id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (brandError || !brand) {
+      return NextResponse.json(
+        { error: "You do not have access to this action" },
+        { status: 403 }
+      );
+    }
+
+    console.log(`🚀 [POST ACTION NOW] Triggering action: ${id} by user: ${user.id}`);
     if (actionData.status === "completed") {
       return NextResponse.json(
         { error: "Action already completed" },
@@ -87,5 +105,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
