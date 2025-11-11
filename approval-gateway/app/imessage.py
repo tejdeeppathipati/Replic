@@ -39,7 +39,7 @@ class iMessageClient:
             recipient: Apple ID or phone number to send message to
         """
         message_text = (
-            f"🤖 BrandPilot Reply\n\n"
+            f"🤖 Replic Reply\n\n"
             f"ID: {candidate.id}\n"
             f"Platform: {candidate.platform.upper()}\n"
             f"Persona: {candidate.persona}\n\n"

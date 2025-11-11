@@ -19,14 +19,14 @@ const bottomItems = [
   { icon: LogOut, label: "Logout", href: "/" },
 ];
 
-export function BrandPilotSidebar() {
+export function ReplicSidebar() {
   const pathname = usePathname();
 
   return (
     <div className="w-64 bg-[#0F172A] text-white min-h-screen p-6 flex flex-col">
       <Link href="/" className="flex items-center gap-2 mb-8">
         <Twitter className="h-8 w-8 text-[#1D9BF0]" />
-        <span className="font-mono text-xl font-bold">BrandPilot</span>
+        <span className="font-mono text-xl font-bold">Replic</span>
       </Link>
       <nav className="flex-1 space-y-2">
         {navItems.map((item) => {

@@ -65,7 +65,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <Link href="/" className="flex items-center gap-2">
               <Twitter className="h-10 w-10 text-[#1D9BF0]" />
-              <span className="font-mono text-2xl font-bold">BrandPilot</span>
+              <span className="font-mono text-2xl font-bold">Replic</span>
             </Link>
           </div>
           <CardTitle className="font-mono text-2xl">Welcome back</CardTitle>

@@ -17,7 +17,7 @@ const steps = [
   {
     icon: Zap,
     title: "Let AI Engage Automatically",
-    description: "BrandPilot replies to mentions, joins conversations, and posts daily content.",
+    description: "Replic replies to mentions, joins conversations, and posts daily content.",
   },
 ];
 

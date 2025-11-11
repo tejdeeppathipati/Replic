@@ -44,7 +44,7 @@ def test_approval_flow():
     """Send a test candidate to the approval gateway."""
     try:
         print("=" * 70)
-        print("🚀 BrandPilot Approval Gateway - WhatsApp Test")
+        print("🚀 Replic Approval Gateway - WhatsApp Test")
         print("=" * 70)
         print(f"📱 Sending WhatsApp to: {test_candidate['owner_whatsapp']}")
         print(f"🆔 Candidate ID: {test_candidate['id']}")

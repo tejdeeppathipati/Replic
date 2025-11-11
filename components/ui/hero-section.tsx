@@ -37,9 +37,9 @@ export default function HeroSection() {
     <>
       <section className="bg-gradient-to-b from-neutral-50 to-white w-full text-sm pb-44">
         <nav className="flex items-center justify-between p-4 md:px-16 lg:px-24 xl:px-32 md:py-6 w-full">
-          <Link href="/" aria-label="BrandPilot home" className="flex items-center gap-2">
+          <Link href="/" aria-label="Replic home" className="flex items-center gap-2">
             <Twitter className="h-8 w-8 text-[#1D9BF0]" />
-            <span className="font-mono text-xl font-bold">BrandPilot</span>
+            <span className="font-mono text-xl font-bold">Replic</span>
           </Link>
 
           <div
@@ -103,7 +103,7 @@ export default function HeroSection() {
         </h1>
 
         <p className="text-sm md:text-base mx-auto max-w-2xl text-center mt-6 max-md:px-2 font-mono text-muted-foreground">
-          BrandPilot watches, replies, and posts in your voice — with optional WhatsApp approvals. Never miss an engagement opportunity.
+          Replic watches, replies, and posts in your voice — with optional WhatsApp approvals. Never miss an engagement opportunity.
         </p>
 
         <div className="mx-auto w-full flex items-center justify-center gap-3 mt-8">

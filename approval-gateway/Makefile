@@ -7,7 +7,7 @@ PYTEST := $(PYTHON) -m pytest
 UVICORN := $(PYTHON) -m uvicorn
 
 help: ## Show this help message
-	@echo "BrandPilot Approval Gateway - Makefile Commands"
+	@echo "Replic Approval Gateway - Makefile Commands"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 	@echo ""
@@ -58,8 +58,8 @@ dev: install ## Setup development environment
 	@echo ""
 
 docker-redis: ## Start Redis in Docker
-	docker run -d --name brandpilot-redis -p 6379:6379 redis:7-alpine
+	docker run -d --name replic-redis -p 6379:6379 redis:7-alpine
 
 docker-redis-stop: ## Stop Redis Docker container
-	docker stop brandpilot-redis && docker rm brandpilot-redis
+	docker stop replic-redis && docker rm replic-redis
 

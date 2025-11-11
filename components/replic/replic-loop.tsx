@@ -36,7 +36,7 @@ const steps = [
   },
 ];
 
-export function BrandPilotLoop() {
+export function ReplicLoop() {
   return (
     <section className="py-24" id="how-it-works">
       <div className="container mx-auto px-4">
@@ -47,7 +47,7 @@ export function BrandPilotLoop() {
           transition={{ duration: 0.6 }}
           className="text-center text-4xl font-mono font-bold mb-4"
         >
-          The BrandPilot Loop
+          The Replic Loop
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 20 }}

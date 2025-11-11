@@ -27,7 +27,7 @@ export default function BrandSettingsPage() {
         <div>
           <h1 className="font-mono text-3xl font-bold mb-2">Connect Your Tools & Define Your Brand</h1>
           <p className="font-mono text-muted-foreground">
-            Link your X account, set your tone, and let BrandPilot handle the rest.
+            Link your X account, set your tone, and let Replic handle the rest.
           </p>
         </div>
       </div>

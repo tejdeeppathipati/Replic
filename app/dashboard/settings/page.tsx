@@ -10,7 +10,7 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-mono text-3xl font-bold mb-1">Settings</h1>
-        <p className="text-sm text-neutral-600">Configure your BrandPilot workspace</p>
+        <p className="text-sm text-neutral-600">Configure your Replic workspace</p>
       </div>
 
       {/* Redirect to Projects */}

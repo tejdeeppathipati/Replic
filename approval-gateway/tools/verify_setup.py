@@ -104,7 +104,7 @@ def check_file_structure():
 
 
 def main():
-    print("🔍 BrandPilot Approval Gateway - Setup Verification\n")
+    print("🔍 Replic Approval Gateway - Setup Verification\n")
     
     checks = [
         ("Python Version", check_python_version),

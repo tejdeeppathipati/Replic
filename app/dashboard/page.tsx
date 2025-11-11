@@ -155,7 +155,7 @@ export default function DashboardPage() {
               <MessageSquare className="h-10 w-10 text-blue-600" />
             </div>
           </div>
-          <h1 className="font-mono text-3xl font-bold mb-2">Welcome to BrandPilot</h1>
+          <h1 className="font-mono text-3xl font-bold mb-2">Welcome to Replic</h1>
           <p className="text-neutral-600 mb-8">Let's set up your brand profile to get started with AI-powered automation</p>
           <Link href="/onboarding">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white font-mono text-sm">

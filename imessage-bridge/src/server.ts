@@ -126,7 +126,7 @@ app.get('/test', async (req: Request, res: Response) => {
       });
     }
 
-    const testMessage = '🤖 BrandPilot iMessage Bridge - Test Message';
+    const testMessage = '🤖 Replic iMessage Bridge - Test Message';
 
     console.log(`🧪 Sending test message to ${recipient}`);
     

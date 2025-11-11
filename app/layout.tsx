@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BrandPilot - AI Agent for X That Auto-Replies in Your Brand Voice",
-  description: "Turn your X account into an AI-powered brand manager. BrandPilot replies, posts, and engages on X in your chosen brand voice — so you look active 24/7.",
+  title: "Replic - AI Agent for X That Auto-Replies in Your Brand Voice",
+  description: "Turn your X account into an AI-powered brand manager. Replic replies, posts, and engages on X in your chosen brand voice — so you look active 24/7.",
 };
 
 export default function RootLayout({

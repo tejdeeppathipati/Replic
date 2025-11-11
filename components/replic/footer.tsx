@@ -40,7 +40,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Twitter className="h-8 w-8 text-[#1D9BF0]" />
-              <span className="font-mono text-xl font-bold text-white">BrandPilot</span>
+              <span className="font-mono text-xl font-bold text-white">Replic</span>
             </div>
             <p className="text-sm font-mono text-neutral-400 mb-6">
               AI Agent for X that auto-replies in your brand voice.
@@ -77,7 +77,7 @@ export function Footer() {
         </div>
         <div className="border-t border-neutral-800 pt-8 text-center">
           <p className="text-sm font-mono text-neutral-500">
-            2025 BrandPilot. All rights reserved.
+            2025 Replic. All rights reserved.
           </p>
         </div>
       </div>

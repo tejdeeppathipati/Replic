@@ -6,7 +6,7 @@ import { Quote } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "Our brand grew 3x faster after using BrandPilot. The AI really understands our voice.",
+    quote: "Our brand grew 3x faster after using Replic. The AI really understands our voice.",
     author: "Alex Kim",
     role: "Founder",
     company: "StartupFlow",
@@ -18,7 +18,7 @@ const testimonials = [
     company: "GrowthHQ",
   },
   {
-    quote: "We look active even when our team's asleep. BrandPilot is like having a 24/7 social media manager.",
+    quote: "We look active even when our team's asleep. Replic is like having a 24/7 social media manager.",
     author: "Sam Rivera",
     role: "Head of Growth",
     company: "TechVentures",

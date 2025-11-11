@@ -19,7 +19,7 @@ export default function OnboardingPage() {
   // Clear old localStorage data on component mount to ensure fresh start
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("brandpilot_config");
+      localStorage.removeItem("replic_config");
     }
   }, []);
 
@@ -181,7 +181,7 @@ export default function OnboardingPage() {
       console.log("✅ Project created:", projectData);
 
       // Mark onboarding as complete
-      localStorage.setItem("brandpilot_onboarded", "true");
+      localStorage.setItem("replic_onboarded", "true");
 
       // Force a full page reload to refresh the projects list
       window.location.href = "/dashboard";
@@ -199,7 +199,7 @@ export default function OnboardingPage() {
         <div className="flex justify-center mb-8">
           <Link href="/" className="flex items-center gap-2">
             <Twitter className="h-8 w-8 text-[#1D9BF0]" />
-            <span className="font-mono text-xl font-bold">BrandPilot</span>
+            <span className="font-mono text-xl font-bold">Replic</span>
           </Link>
         </div>
 
@@ -649,7 +649,7 @@ export default function OnboardingPage() {
               onClick={handleFinish}
               className="bg-[#22C55E] hover:bg-[#16a34a] font-mono"
             >
-              Activate BrandPilot
+              Activate Replic
               <Check className="h-4 w-4 ml-1" />
             </Button>
           )}

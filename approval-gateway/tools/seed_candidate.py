@@ -149,7 +149,7 @@ def main():
     
     args = parser.parse_args()
     
-    print("BrandPilot Candidate Seeder")
+    print("Replic Candidate Seeder")
     print(f" Gateway: {args.url}")
     print(f" Count: {args.count}\n")
     

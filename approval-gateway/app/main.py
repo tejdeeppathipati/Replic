@@ -1,5 +1,5 @@
 """
-BrandPilot Approval Gateway - FastAPI application.
+Replic Approval Gateway - FastAPI application.
 
 Handles human approval of candidate social media replies via WhatsApp and iMessage.
 """
@@ -144,7 +144,7 @@ async def lifespan(app: FastAPI):
     global timeout_checker_task, imessage_watch_task
     
     # Startup
-    print("🚀 Starting BrandPilot Approval Gateway...")
+    print("🚀 Starting Replic Approval Gateway...")
     
     # Initialize Redis store
     await init_store(settings.redis_url)
@@ -205,7 +205,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="BrandPilot Approval Gateway",
+    title="Replic Approval Gateway",
     description="Human approval service for social media replies",
     version="0.1.0",
     lifespan=lifespan
@@ -242,7 +242,7 @@ def verify_webhook_signature(signature: Optional[str]) -> bool:
 async def root():
     """Health check endpoint."""
     return {
-        "service": "brandpilot-approval-gateway",
+        "service": "replic-approval-gateway",
         "status": "ok",
         "version": "0.1.0"
     }

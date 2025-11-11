@@ -119,7 +119,7 @@ export const Logo = () => {
         animate={{ opacity: 1 }}
         className="font-mono font-bold text-lg text-black dark:text-white whitespace-pre"
       >
-        BrandPilot
+        Replic
       </motion.span>
     </Link>
   );
