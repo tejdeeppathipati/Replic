@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase";
 import { withAuth } from "@/lib/api-auth";
+import { verifyBrandOwnership } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/actions/post-now
@@ -20,7 +21,7 @@ export const POST = withAuth(async (request: NextRequest, user) => {
       );
     }
 
-    const supabase = createSupabaseClient();
+    const supabase = createSupabaseAdminClient();
 
     // Get the action details
     const { data: action, error: fetchError } = await (supabase
@@ -40,14 +41,9 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     const actionData = action as any;
 
     // Verify brand ownership
-    const { data: brand, error: brandError } = await (supabase
-      .from("brand_agent") as any)
-      .select("id")
-      .eq("id", actionData.brand_id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (brandError || !brand) {
+    try {
+      await verifyBrandOwnership(actionData.brand_id, user.id);
+    } catch (error) {
       return NextResponse.json(
         { error: "You do not have access to this action" },
         { status: 403 }
@@ -66,24 +62,45 @@ export const POST = withAuth(async (request: NextRequest, user) => {
 
     // Call daily-poster service to generate and post
     const dailyPosterUrl = process.env.DAILY_POSTER_URL || "http://localhost:8500";
-    const response = await fetch(`${dailyPosterUrl}/post-action`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        action_id: id,
-        brand_id: actionData.brand_id,
-        action_type: actionData.action_type,
-        title: actionData.title,
-        description: actionData.description,
-        context: actionData.context,
-        tone: actionData.tone,
-      }),
-    });
+
+    let response;
+    try {
+      response = await fetch(`${dailyPosterUrl}/post-action`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action_id: id,
+          brand_id: actionData.brand_id,
+          action_type: actionData.action_type,
+          title: actionData.title,
+          description: actionData.description,
+          context: actionData.context,
+          tone: actionData.tone,
+        }),
+      });
+    } catch (fetchError: any) {
+      console.error(`❌ [POST ACTION NOW] Failed to connect to daily-poster service at ${dailyPosterUrl}`);
+      console.error(`   Error: ${fetchError.message}`);
+
+      // Check if it's a connection error
+      if (fetchError.code === 'ECONNREFUSED' || fetchError.message.includes('ECONNREFUSED')) {
+        throw new Error(
+          `Daily-poster service is not running at ${dailyPosterUrl}. ` +
+          `Please ensure the daily-poster service is running and accessible.`
+        );
+      }
+      throw new Error(`Failed to reach daily-poster service: ${fetchError.message}`);
+    }
 
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+      }
       throw new Error(errorData.detail || "Failed to post action");
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase";
 import { withAuth } from "@/lib/api-auth";
+import { verifyBrandOwnership } from "@/lib/api-auth";
 
 /**
  * API Route: PUT /api/actions/update
@@ -28,7 +29,7 @@ export const PUT = withAuth(async (request: NextRequest, user) => {
       );
     }
 
-    const supabase = createSupabaseClient();
+    const supabase = createSupabaseAdminClient();
 
     // First, verify the action belongs to a brand owned by this user
     const { data: existingAction, error: fetchError } = await (supabase
@@ -45,14 +46,9 @@ export const PUT = withAuth(async (request: NextRequest, user) => {
     }
 
     // Verify brand ownership
-    const { data: brand, error: brandError } = await (supabase
-      .from("brand_agent") as any)
-      .select("id")
-      .eq("id", existingAction.brand_id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (brandError || !brand) {
+    try {
+      await verifyBrandOwnership(existingAction.brand_id, user.id);
+    } catch (error) {
       return NextResponse.json(
         { error: "You do not have access to this action" },
         { status: 403 }

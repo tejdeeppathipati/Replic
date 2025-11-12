@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseClient } from './supabase';
+import { createSupabaseClient, createSupabaseAdminClient } from './supabase';
 
 interface AuthenticatedUser {
   id: string;
@@ -18,10 +18,35 @@ interface AuthenticatedUser {
  */
 export async function getAuthenticatedUser(request: NextRequest): Promise<AuthenticatedUser> {
   try {
-    const supabase = createSupabaseClient();
+    // Try to get the authorization token from the Authorization header
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
 
-    // Get the session
-    const { data: { user }, error } = await supabase.auth.getUser();
+    if (!token) {
+      // Fall back to getting the session from cookies
+      const cookieToken = request.cookies.get('sb-access-token')?.value;
+
+      if (!cookieToken) {
+        throw new Error('Unauthorized');
+      }
+
+      // Create a Supabase client and verify the token
+      const supabase = createSupabaseClient();
+      const { data: { user }, error } = await supabase.auth.getUser(cookieToken);
+
+      if (error || !user) {
+        throw new Error('Unauthorized');
+      }
+
+      return {
+        id: user.id,
+        email: user.email || '',
+      };
+    }
+
+    // Verify the token with Supabase
+    const supabase = createSupabaseClient();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
       throw new Error('Unauthorized');
@@ -45,7 +70,7 @@ export async function verifyBrandOwnership(
   userId: string
 ): Promise<boolean> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = createSupabaseAdminClient();
 
     const { data, error } = await (supabase as any)
       .from('brand_agent')

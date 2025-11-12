@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * Composio Webhook Endpoint
@@ -102,23 +103,13 @@ export async function POST(request: NextRequest) {
 }
 
 // GET endpoint to check for recent events (used by frontend)
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (_request: NextRequest, user) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
-    }
-
-    const event = recentEvents.get(userId);
+    const event = recentEvents.get(user.id);
     
     if (event) {
       // Clear the event after reading
-      recentEvents.delete(userId);
+      recentEvents.delete(user.id);
       return NextResponse.json({ 
         hasUpdate: true,
         event,
@@ -136,5 +127,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

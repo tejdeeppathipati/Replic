@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useProjects } from "@/lib/projects-context";
 
 type Integration = {
   id: string;
@@ -60,31 +59,42 @@ type ConnectionStatus = {
 };
 
 export default function IntegrationsPage() {
-  const { currentProject } = useProjects();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({});
   const [isLoadingConnections, setIsLoadingConnections] = useState(true);
-
-  // Use current project ID as userId for Composio
-  const userId = currentProject?.id || "default";
-
-  // Fetch existing connections on mount and when userId changes
+  // Fetch existing connections on mount
   useEffect(() => {
-    console.log(`🔄 [UI] Fetching connections for userId: ${userId}`);
     fetchConnections();
     
     // Check for OAuth callback success
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("connection") === "success") {
       console.log("✅ [UI] OAuth callback detected - refreshing connections");
-      // Remove the query parameter
+      
+      // Show success message
+      const connectedAccountId = urlParams.get("connectedAccountId");
+      const appName = urlParams.get("appName");
+      if (connectedAccountId && appName) {
+        console.log(`✅ [UI] Connection successful: ${appName} (${connectedAccountId})`);
+        // Show user-friendly success message
+        alert(`✅ Successfully connected ${appName}!\n\nThe connection is being processed. It may take a few seconds to appear.`);
+      }
+      
+      // Remove the query parameter from URL
       window.history.replaceState({}, "", "/dashboard/integrations");
-      // Fetch connections after a short delay to allow webhook to process
+      
+      // Fetch connections after delays to allow Composio to process
       setTimeout(() => {
-        console.log("🔄 [UI] Re-fetching after OAuth callback");
+        console.log("🔄 [UI] Re-fetching after OAuth callback (first attempt)");
         fetchConnections();
-      }, 1500);
+      }, 2000);
+      
+      setTimeout(() => {
+        console.log("🔄 [UI] Re-fetching after OAuth callback (second attempt)");
+        fetchConnections();
+      }, 5000);
     }
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Poll for webhook updates every 3 seconds
   useEffect(() => {
@@ -92,7 +102,9 @@ export default function IntegrationsPage() {
     
     const checkForUpdates = async () => {
       try {
-        const response = await fetch(`/api/composio/webhook?userId=${userId}`);
+        const response = await fetch(`/api/composio/webhook`, {
+          credentials: "include",
+        });
         const data = await response.json();
         
         if (data.hasUpdate) {
@@ -117,13 +129,16 @@ export default function IntegrationsPage() {
         clearInterval(interval);
       }
     };
-  }, [userId, isLoadingConnections]);
+  }, [isLoadingConnections]);
 
   const fetchConnections = async () => {
+    // Don't fetch if we don't have a userId
     setIsLoadingConnections(true);
     try {
-      console.log("🔍 Fetching connections for userId:", userId);
-      const response = await fetch(`/api/composio/connections?userId=${userId}`);
+      console.log("🔍 Fetching connections (server will infer user)");
+      const response = await fetch(`/api/composio/connections`, {
+        credentials: "include",
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -264,12 +279,14 @@ export default function IntegrationsPage() {
     }));
 
     try {
+      console.log(`🔗 [UI] Initiating ${integration.name} connection (server infers user)`);
+      
       // Call API to initiate OAuth
       const response = await fetch("/api/composio/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          userId,
           integration: integration.type,
         }),
       });
@@ -324,6 +341,7 @@ export default function IntegrationsPage() {
       const response = await fetch("/api/composio/disconnect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ connectedAccountId: accountId }),
       });
 
@@ -375,7 +393,8 @@ export default function IntegrationsPage() {
         {integrations.map((integration) => {
           const status = connectionStatus[integration.id];
           const isConnected = status?.connected || false;
-          const isLoading = status?.loading || isLoadingConnections;
+          const isLoading =
+            status?.loading || (isLoadingConnections && !status?.connected && !status?.loading);
           const username = status?.username;
 
           return (

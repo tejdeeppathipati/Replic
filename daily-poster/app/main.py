@@ -194,14 +194,19 @@ async def generate_post(request: GeneratePostRequest, require_auto_post: bool = 
         if request.auto_post:
             try:
                 print(f"📤 Posting to X via TypeScript API endpoint...")
-                
+
+                # Get the user ID from brand data
+                user_id = brand_data.get("user_id")
+                if not user_id:
+                    raise Exception("User ID not found in brand data")
+
                 # Call the working TypeScript API endpoint
                 api_url = f"{settings.api_base_url}/api/composio/post-tweet"
                 async with httpx.AsyncClient() as client:
                     api_response = await client.post(
                         api_url,
                         json={
-                            "userId": request.brand_id,
+                            "userId": user_id,
                             "text": post_text
                         },
                         timeout=30.0
@@ -479,18 +484,23 @@ async def post_action(request: PostActionRequest):
         
         try:
             print(f"📤 Posting to X via TypeScript API endpoint...")
-            
+
+            # Get the user ID from brand data
+            user_id = brand_data.get("user_id")
+            if not user_id:
+                raise Exception("User ID not found in brand data")
+
             api_url = f"{settings.api_base_url}/api/composio/post-tweet"
             async with httpx.AsyncClient() as client:
                 api_response = await client.post(
                     api_url,
                     json={
-                        "userId": request.brand_id,
+                        "userId": user_id,
                         "text": post_text
                     },
                     timeout=30.0
                 )
-                
+
                 if api_response.status_code != 200:
                     raise Exception(f"API returned {api_response.status_code}: {api_response.text}")
                 

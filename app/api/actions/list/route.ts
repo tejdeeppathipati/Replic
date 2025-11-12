@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase";
 import { withBrandAuth } from "@/lib/api-auth";
 
 /**
@@ -12,7 +12,7 @@ export const GET = withBrandAuth(async (request: NextRequest, user, brandId) => 
   try {
     console.log(`📋 [LIST ACTIONS] Fetching actions for brand: ${brandId} by user: ${user.id}`);
 
-    const supabase = createSupabaseClient();
+    const supabase = createSupabaseAdminClient();
 
     // Get all actions for this brand, ordered by creation date
     // Note: The withBrandAuth wrapper already verified that this user owns this brand

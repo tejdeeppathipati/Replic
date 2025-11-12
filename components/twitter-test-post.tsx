@@ -10,13 +10,12 @@ import { useProjects } from "@/lib/projects-context";
  * Simple UI to test posting to Twitter via Composio
  */
 export function TwitterTestPost() {
-  const { currentProject } = useProjects();
+  const { userId: authenticatedUserId } = useProjects();
   const [message, setMessage] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const userId = currentProject?.id || "default";
   const maxLength = 280;
 
   const handlePost = async () => {
@@ -35,15 +34,19 @@ export function TwitterTestPost() {
     setResult(null);
 
     try {
+      if (!authenticatedUserId) {
+        throw new Error("User not authenticated");
+      }
+
       console.log("🐦 [TWITTER TEST] Posting tweet...");
       console.log("   Message:", message);
-      console.log("   User ID:", userId);
+      console.log("   User ID:", authenticatedUserId);
 
       const response = await fetch("/api/composio/post-tweet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
+          userId: authenticatedUserId,
           text: message,
         }),
       });

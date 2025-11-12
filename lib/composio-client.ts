@@ -69,11 +69,13 @@ export async function initiateConnection(
   })();
 
   // Initiate the connection using the auth config
+  // allowMultiple: true allows users to connect multiple accounts for the same integration
   const connectionRequest = await composioClient.connectedAccounts.initiate(
     userId,
     authConfigId,
     {
       callbackUrl: finalCallbackUrl,
+      allowMultiple: true, // Allow multiple connected accounts for the same user and integration
     }
   );
 

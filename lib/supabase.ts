@@ -124,8 +124,17 @@ export type Database = {
   };
 };
 
+// Singleton Supabase client for client-side use
+// This prevents multiple GoTrueClient instances
+let supabaseClient: ReturnType<typeof createClient<Database>> | null = null;
+
 // Client-side Supabase client (for use in React components)
 export function createSupabaseClient() {
+  // Return existing client if it exists (singleton pattern)
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -136,7 +145,7 @@ export function createSupabaseClient() {
     console.warn('⚠️  Supabase env vars missing during build. Using placeholder values.');
     console.warn('⚠️  Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel settings!');
     // Return a client with placeholder values - will fail at runtime if actually used
-    return createClient<Database>(
+    supabaseClient = createClient<Database>(
       'https://placeholder.supabase.co',
       'placeholder-key',
       {
@@ -146,6 +155,7 @@ export function createSupabaseClient() {
         },
       }
     );
+    return supabaseClient;
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -154,12 +164,15 @@ export function createSupabaseClient() {
     );
   }
 
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  // Create and cache the client
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
     },
   });
+
+  return supabaseClient;
 }
 
 // Server-side Supabase client (for API routes and server components)

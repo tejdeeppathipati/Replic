@@ -144,7 +144,7 @@ export default function BrandSettingsPage() {
               Safety Settings
             </CardTitle>
             <CardDescription className="font-mono">
-              Control how BrandPilot engages on your behalf
+              Control how Replic engages on your behalf
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

@@ -57,6 +57,47 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 /**
+ * Register or refresh the server-side session cookies so middleware can validate auth.
+ */
+export async function syncServerSession(
+  accessToken: string,
+  refreshToken?: string,
+  expiresIn?: number
+) {
+  if (!accessToken) return null;
+
+  try {
+    const response = await fetch('/api/auth/register-session', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        refreshToken,
+        expiresIn,
+      }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to sync server session (${response.status})`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`Server session sync returned non-JSON response: ${text.slice(0, 100)}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to sync server session:', error);
+    return null;
+  }
+}
+
+/**
  * Sign out the current user
  */
 export async function signOut() {
@@ -67,6 +108,16 @@ export async function signOut() {
     if (error) {
       console.error('Error signing out:', error);
       throw error;
+    }
+
+    // Clear server-side cookies
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (logoutError) {
+      console.error('Failed to clear server session cookies:', logoutError);
     }
 
     // Clear any local storage
@@ -97,12 +148,24 @@ export async function getUserProfile() {
       .eq('id', user.id)
       .single();
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') { // ignore "row not found" errors
       console.error('Error getting user profile:', error);
-      return null;
     }
 
-    return data;
+    if (data) {
+      return data;
+    }
+
+    // Fall back to auth metadata if no row in app_user
+    const metadata = (user as any)?.user_metadata || {};
+    return {
+      id: user.id,
+      email: user.email || metadata.email || '',
+      full_name: metadata.full_name || metadata.name || null,
+      first_name: metadata.first_name || null,
+      last_name: metadata.last_name || null,
+      phone_number: metadata.phone_number || null,
+    };
   } catch (error) {
     console.error('Exception getting user profile:', error);
     return null;

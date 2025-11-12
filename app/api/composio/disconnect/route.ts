@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { disconnectAccount } from "@/lib/composio-client";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/composio/disconnect
@@ -8,7 +9,7 @@ import { disconnectAccount } from "@/lib/composio-client";
  * Body: { connectedAccountId: string }
  * Returns: { success: boolean }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const body = await request.json();
     const { connectedAccountId } = body;
@@ -52,5 +53,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

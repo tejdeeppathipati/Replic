@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initiateConnection, IntegrationType } from "@/lib/composio-client";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/composio/connect
@@ -8,15 +9,15 @@ import { initiateConnection, IntegrationType } from "@/lib/composio-client";
  * Body: { userId: string, integration: "TWITTER" | "REDDIT" }
  * Returns: { redirectUrl: string, connectionId: string }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
-    const { userId, integration } = body;
+    const { integration } = body;
 
     // Validate input
-    if (!userId || !integration) {
+    if (!integration) {
       return NextResponse.json(
-        { error: "userId and integration are required" },
+        { error: "integration is required" },
         { status: 400 }
       );
     }
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Initiate connection with Composio
     const result = await initiateConnection(
-      userId,
+      user.id,
       integration as IntegrationType,
       callbackUrl
     );
@@ -59,5 +60,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

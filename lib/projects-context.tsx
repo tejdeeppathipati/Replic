@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { createSupabaseClient } from "./supabase";
+import { syncServerSession } from "./auth";
 
 export interface ProjectSettings {
   brandName: string;
@@ -26,9 +27,11 @@ interface ProjectsContextType {
   projects: Project[];
   currentProjectId: string;
   currentProject: Project | undefined;
+  userId: string | null;
   setCurrentProject: (projectId: string) => void;
   updateProject: (projectId: string, updates: Partial<ProjectSettings>) => void;
   createProject: (name: string) => void;
+  refreshProjects: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -51,65 +54,124 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const supabase = createSupabaseClient();
 
-  // Load projects from database on mount
-  useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        setIsLoading(true);
+  // Function to load projects from database
+  const loadProjects = useCallback(async () => {
+    try {
+      setIsLoading(true);
 
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          console.log("No user logged in");
-          return;
-        }
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log("No user logged in, clearing projects");
+        setProjects([]);
+        setCurrentProjectId("");
+        setUserId(null);
+        return;
+      }
 
-        // Fetch brand_agent records from database
-        const { data, error } = await (supabase
-          .from("brand_agent")
-          .select("*")
-          .eq("user_id", user.id) as any);
+      console.log("Loading projects for user:", user.id);
+      setUserId(user.id);
 
-        if (error) {
-          console.error("Failed to load projects from database:", error);
-          return;
-        }
+      // Fetch brand_agent records from database
+      const { data, error } = await (supabase
+        .from("brand_agent")
+        .select("*")
+        .eq("user_id", user.id) as any);
 
-        // Transform database records to Project format
-        const loadedProjects: Project[] = (data || []).map((agent: any) => ({
-          id: agent.id,
-          name: agent.name,
-          settings: {
-            brandName: agent.brand_name || "",
-            description: agent.description || "",
-            website: agent.website || "",
-            persona: agent.personality || "normal",
-            keywords: agent.keywords || "",
-            watchedAccounts: agent.watched_accounts || "",
-            autoPost: agent.auto_post || false,
-            whatsappDrafts: agent.whatsapp_drafts || true,
-            monitorReddit: agent.monitor_reddit || true,
-            dailyLimit: agent.daily_reply_limit || 30,
-          },
-        }));
+      if (error) {
+        console.error("Failed to load projects from database:", error);
+        return;
+      }
 
-        setProjects(loadedProjects);
+      // Transform database records to Project format
+      const loadedProjects: Project[] = (data || []).map((agent: any) => ({
+        id: agent.id,
+        name: agent.name,
+        settings: {
+          brandName: agent.brand_name || "",
+          description: agent.description || "",
+          website: agent.website || "",
+          persona: agent.personality || "normal",
+          keywords: agent.keywords || "",
+          watchedAccounts: agent.watched_accounts || "",
+          autoPost: agent.auto_post || false,
+          whatsappDrafts: agent.whatsapp_drafts || true,
+          monitorReddit: agent.monitor_reddit || true,
+          dailyLimit: agent.daily_reply_limit || 30,
+        },
+      }));
 
-        // Set first project as current if none selected
+      console.log(`Loaded ${loadedProjects.length} projects:`, loadedProjects.map(p => p.name));
+      setProjects(loadedProjects);
+
+      // Set first project as current if none selected or if current project doesn't exist
+      setCurrentProjectId((prevId) => {
         if (loadedProjects.length > 0) {
-          setCurrentProjectId(loadedProjects[0].id);
+          // If current project still exists, keep it
+          const currentExists = loadedProjects.some(p => p.id === prevId);
+          if (currentExists) {
+            return prevId;
+          }
+          // Otherwise, set first project
+          return loadedProjects[0].id;
         }
-      } catch (error) {
-        console.error("Error loading projects:", error);
-      } finally {
-        setIsLoading(false);
+        return "";
+      });
+    } catch (error) {
+      console.error("Error loading projects:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supabase]);
+
+  // Load projects on mount and when auth state changes
+  useEffect(() => {
+    let mounted = true;
+
+    // Initial load with a small delay to ensure auth is ready
+    const initialLoad = async () => {
+      // Small delay to ensure Supabase auth is initialized
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (mounted) {
+        await loadProjects();
       }
     };
+    
+    initialLoad();
 
-    loadProjects();
-  }, []);
+    // Listen to auth state changes and reload projects when user logs in
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log("Auth state changed in ProjectsProvider:", event, session?.user?.id);
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
+          await syncServerSession(
+            session.access_token,
+            session.refresh_token ?? undefined,
+            session.expires_in ?? undefined
+          );
+          // Reload projects when user signs in or token is refreshed
+          console.log("User signed in or token refreshed, reloading projects...");
+          await loadProjects();
+        } else if (event === 'SIGNED_OUT') {
+          // Clear projects when user signs out
+          console.log("User signed out, clearing projects");
+          setProjects([]);
+          setCurrentProjectId("");
+          setUserId(null);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [loadProjects, supabase]);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
 
@@ -228,9 +290,11 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
         projects,
         currentProjectId,
         currentProject,
+        userId,
         setCurrentProject,
         updateProject,
         createProject,
+        refreshProjects: loadProjects,
         isLoading,
       }}
     >

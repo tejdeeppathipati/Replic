@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase";
 import { withAuth } from "@/lib/api-auth";
 import { verifyBrandOwnership } from "@/lib/api-auth";
 
@@ -51,7 +51,8 @@ export const POST = withAuth(async (request: NextRequest, user) => {
       );
     }
 
-    const supabase = createSupabaseClient();
+    // Use admin client so server-side insert bypasses client RLS.
+    const supabase = createSupabaseAdminClient();
 
     // Create the action
     const { data, error } = await supabase
@@ -91,4 +92,3 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     );
   }
 });
-

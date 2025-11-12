@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserConnections } from "@/lib/composio-client";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: GET /api/composio/connections?userId=xxx
@@ -8,7 +9,7 @@ import { getUserConnections } from "@/lib/composio-client";
  * Query params: { userId: string }
  * Returns: Array of connected accounts with status
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, user) => {
   try {
     console.log("🔍 [API] Fetching connections...");
     
@@ -21,18 +22,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-
-    console.log("📋 [API] userId:", userId);
-
-    if (!userId) {
-      console.error("❌ [API] userId is missing from request");
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
-    }
+    const userId = user.id;
+    console.log("📋 [API] Authenticated userId:", userId);
 
     console.log("🌐 [API] Calling Composio API...");
     const connections = await getUserConnections(userId);
@@ -66,5 +57,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

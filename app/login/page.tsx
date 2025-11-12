@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Twitter } from "lucide-react";
@@ -16,6 +16,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Clear any local session data when landing on login page
+  useEffect(() => {
+    const clearSession = async () => {
+      if (typeof window !== 'undefined') {
+        // Clear localStorage remnants
+        localStorage.removeItem('replic_onboarded');
+        localStorage.removeItem('replic_config');
+
+        // Clear Supabase session (this logs out the user)
+        const supabase = createSupabaseClient();
+        await supabase.auth.signOut();
+      }
+    };
+    
+    clearSession();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +64,8 @@ export default function LoginPage() {
       if (signInError) throw signInError;
 
       if (data.session) {
-        // Successful login - redirect to dashboard
+        // Successful login - Supabase automatically sets the auth cookies
+        // Redirect to dashboard
         router.push("/dashboard");
       }
     } catch (err: any) {
