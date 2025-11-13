@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createSupabaseClient } from "@/lib/supabase";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,22 +17,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Clear any local session data when landing on login page
+  // Check if user is already logged in and redirect to dashboard
   useEffect(() => {
-    const clearSession = async () => {
-      if (typeof window !== 'undefined') {
-        // Clear localStorage remnants
-        localStorage.removeItem('replic_onboarded');
-        localStorage.removeItem('replic_config');
+    const checkAuth = async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
 
-        // Clear Supabase session (this logs out the user)
-        const supabase = createSupabaseClient();
-        await supabase.auth.signOut();
+      if (session) {
+        router.push("/dashboard");
       }
     };
-    
-    clearSession();
-  }, []);
+
+    checkAuth();
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,9 +50,9 @@ export default function LoginPage() {
     }
 
     try {
-      const supabase = createSupabaseClient();
+      const supabase = getSupabaseBrowserClient();
 
-      // Sign in with Supabase Auth
+      // Sign in
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -64,14 +61,18 @@ export default function LoginPage() {
       if (signInError) throw signInError;
 
       if (data.session) {
-        // Successful login - Supabase automatically sets the auth cookies
-        // Redirect to dashboard
-        router.push("/dashboard");
+        // Set cookie manually to ensure middleware can read it (MUST match middleware cookie name)
+        document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax`;
+
+        // Small delay to ensure cookie is set
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Redirect using window.location for a full page reload
+        window.location.href = "/dashboard";
       }
     } catch (err: any) {
       setError(err.message || "Failed to log in. Please check your credentials.");
       console.error("Login error:", err);
-    } finally {
       setLoading(false);
     }
   };

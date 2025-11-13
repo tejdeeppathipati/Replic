@@ -52,6 +52,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [engagementLoading, setEngagementLoading] = useState(false);
 
+  // Log page load state for debugging
+  useEffect(() => {
+    console.log("📊 Dashboard page loaded");
+    console.log("📦 Projects loading:", projectsLoading);
+    console.log("🏢 Current project:", currentProject?.id || "none");
+    console.log("📝 Projects available:", projects.length);
+  }, []);
+
   // Fetch dashboard stats
   const fetchStats = async () => {
     if (!brandId) {

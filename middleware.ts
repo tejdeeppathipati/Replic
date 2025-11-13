@@ -1,26 +1,24 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import type { Database } from './lib/supabase';
 
 /**
- * Authentication Middleware
+ * Simplified Authentication Middleware
  *
- * Protects routes that require authentication:
- * - /dashboard/*
- * - /onboarding
- * - /api/*
+ * Uses Supabase session cookies - standard production approach
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Public routes that don't require authentication
   const publicRoutes = [
     '/',
     '/login',
     '/signup',
     '/forgot-password',
     '/reset-password',
-    '/api/auth/logout',
-    '/api/composio/post-tweet', // Internal service endpoint (daily-poster)
+    '/api/composio/post-tweet', // Internal service endpoint
   ];
 
   const isPublicRoute = publicRoutes.some(route => {
@@ -35,56 +33,47 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Missing Supabase environment variables in middleware');
-      return redirectToLogin(request);
+    // Get auth token from cookies
+    const authCookie = request.cookies.get('sb-access-token');
+
+    if (!authCookie) {
+      // No auth cookie - redirect to login
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // Create Supabase client
+    const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false },
     });
 
-    let token = request.cookies.get('sb-access-token')?.value;
-
-    if (!token) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-    }
-
-    if (!token) {
-      console.log(`🔒 No auth token found for ${pathname}`);
-      return redirectToLogin(request);
-    }
-
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Verify the session
+    const { data: { user }, error } = await supabase.auth.getUser(authCookie.value);
 
     if (error || !user) {
-      console.log(`🔒 Invalid session for ${pathname}:`, error?.message);
-      const response = redirectToLogin(request);
+      // Invalid session - redirect to login
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      const response = NextResponse.redirect(loginUrl);
       response.cookies.delete('sb-access-token');
-      response.cookies.delete('sb-refresh-token');
       return response;
     }
 
+    // Authenticated - set user headers for API routes
     const response = NextResponse.next();
     response.headers.set('x-user-id', user.id);
     response.headers.set('x-user-email', user.email || '');
+
     return response;
   } catch (error) {
     console.error('Middleware error:', error);
-    return redirectToLogin(request);
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
   }
-}
-
-function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL('/login', request.url);
-  loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
-  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { createSupabaseClient } from "./supabase";
-import { syncServerSession } from "./auth";
+import { getSupabaseBrowserClient } from "./supabase-browser";
 
 export interface ProjectSettings {
   brandName: string;
@@ -55,36 +54,73 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
   const [currentProjectId, setCurrentProjectId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const supabase = createSupabaseClient();
+  const supabase = getSupabaseBrowserClient();
 
   // Function to load projects from database
   const loadProjects = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log("📦 Starting to load projects...");
 
       // Get current user
+      console.log("👤 Fetching current user from Supabase auth...");
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log("No user logged in, clearing projects");
+        console.log("❌ No user logged in, clearing projects");
         setProjects([]);
         setCurrentProjectId("");
         setUserId(null);
         return;
       }
 
-      console.log("Loading projects for user:", user.id);
+      console.log("✅ User authenticated:", user.id);
       setUserId(user.id);
 
       // Fetch brand_agent records from database
-      const { data, error } = await (supabase
-        .from("brand_agent")
-        .select("*")
-        .eq("user_id", user.id) as any);
+      // The RLS policy requires auth.uid() = user_id, so the authenticated session is used automatically
+      console.log("🔍 Fetching brand_agent records from database for user:", user.id);
 
-      if (error) {
-        console.error("Failed to load projects from database:", error);
+      // Create a promise that times out after 10 seconds to prevent indefinite hanging
+      const queryPromise = (async () => {
+        return await supabase
+          .from("brand_agent")
+          .select("*")
+          .eq("user_id", user.id);
+      })();
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Database query timeout after 10 seconds")), 10000)
+      );
+
+      let data: any;
+      let error: any;
+      try {
+        const result = (await Promise.race([queryPromise, timeoutPromise])) as any;
+        data = result?.data;
+        error = result?.error;
+      } catch (timeoutError) {
+        console.error("❌ Database query timed out:", timeoutError);
+        setProjects([]);
         return;
       }
+
+      if (error) {
+        console.error("❌ Failed to load projects from database:", error);
+        console.error("   Error details:", {
+          message: error.message,
+          code: (error as any).code,
+          status: (error as any).status,
+        });
+        return;
+      }
+
+      if (!data) {
+        console.warn("⚠️  Query returned null data");
+        setProjects([]);
+        return;
+      }
+
+      console.log("📊 Database query returned:", data.length, "records");
 
       // Transform database records to Project format
       const loadedProjects: Project[] = (data || []).map((agent: any) => ({
@@ -104,7 +140,7 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
         },
       }));
 
-      console.log(`Loaded ${loadedProjects.length} projects:`, loadedProjects.map(p => p.name));
+      console.log(`✅ Loaded ${loadedProjects.length} projects:`, loadedProjects.map(p => p.name));
       setProjects(loadedProjects);
 
       // Set first project as current if none selected or if current project doesn't exist
@@ -113,17 +149,21 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
           // If current project still exists, keep it
           const currentExists = loadedProjects.some(p => p.id === prevId);
           if (currentExists) {
+            console.log("📌 Keeping current project:", prevId);
             return prevId;
           }
           // Otherwise, set first project
+          console.log("📌 Setting first project as current:", loadedProjects[0].id);
           return loadedProjects[0].id;
         }
+        console.log("⚠️  No projects available");
         return "";
       });
     } catch (error) {
-      console.error("Error loading projects:", error);
+      console.error("❌ Error loading projects:", error);
     } finally {
       setIsLoading(false);
+      console.log("✅ Project loading complete");
     }
   }, [supabase]);
 
@@ -131,31 +171,30 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     let mounted = true;
 
-    // Initial load with a small delay to ensure auth is ready
+    // Initial load with a larger delay to ensure auth is ready
     const initialLoad = async () => {
-      // Small delay to ensure Supabase auth is initialized
-      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log("🔄 Waiting for Supabase auth to be initialized...");
+      // Longer delay to ensure Supabase auth is fully initialized and session is available
+      await new Promise(resolve => setTimeout(resolve, 300));
       if (mounted) {
+        console.log("⏱️  Auth initialization delay complete, loading projects...");
         await loadProjects();
       }
     };
-    
+
     initialLoad();
 
     // Listen to auth state changes and reload projects when user logs in
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: string, session: any) => {
         if (!mounted) return;
-        
+
         console.log("Auth state changed in ProjectsProvider:", event, session?.user?.id);
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
-          await syncServerSession(
-            session.access_token,
-            session.refresh_token ?? undefined,
-            session.expires_in ?? undefined
-          );
           // Reload projects when user signs in or token is refreshed
           console.log("User signed in or token refreshed, reloading projects...");
+          // Wait a moment to ensure the session is fully set before querying
+          await new Promise(resolve => setTimeout(resolve, 100));
           await loadProjects();
         } else if (event === 'SIGNED_OUT') {
           // Clear projects when user signs out

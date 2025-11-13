@@ -215,10 +215,19 @@ export default function ActionsPage() {
         alert(`✅ Posted successfully!\n\n"${data.post_text}"`);
         fetchActions();
       } else {
-        alert(`Failed to post: ${data.error}`);
+        // Improved error handling with user-friendly messages
+        const errorMsg = data.error || "Unknown error";
+
+        if (errorMsg.includes("temporarily unavailable") || errorMsg.includes("service is currently unavailable")) {
+          alert(`⏳ The AI service is temporarily unavailable. This is usually brief.\n\n💡 You can:\n• Try again in a few minutes\n• The system will retry automatically with the hourly posting\n\nError details: ${errorMsg}`);
+        } else if (errorMsg.includes("Failed after") && errorMsg.includes("attempts")) {
+          alert(`❌ Failed to post after multiple retry attempts.\n\nThe AI service may be experiencing issues. Please try again later or contact support.\n\nError: ${errorMsg}`);
+        } else {
+          alert(`❌ Failed to post: ${errorMsg}`);
+        }
       }
     } catch (error: any) {
-      alert(`Error: ${error.message}`);
+      alert(`❌ Network error: ${error.message}\n\nPlease check your connection and try again.`);
     }
   };
 

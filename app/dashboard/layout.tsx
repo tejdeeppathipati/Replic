@@ -28,8 +28,9 @@ export default function DashboardLayout({
 
   // Load projects on mount - middleware already verified authentication
   useEffect(() => {
+    console.log("🎯 Dashboard layout mounted, refreshing projects...");
     refreshProjectsRef.current().catch((error) => {
-      console.error('Failed to load projects:', error);
+      console.error('❌ Failed to load projects:', error);
     });
   }, []);
 

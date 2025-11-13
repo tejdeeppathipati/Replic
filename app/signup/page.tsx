@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createSupabaseClient } from "@/lib/supabase";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -64,9 +64,9 @@ export default function SignupPage() {
     }
 
     try {
-      const supabase = createSupabaseClient();
+      const supabase = getSupabaseBrowserClient();
 
-      // Sign up with Supabase Auth
+      // Sign up with Supabase Auth - cookies handled automatically
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -74,7 +74,7 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError;
 
-      if (data.user) {
+      if (data.user && data.session) {
         // Create user profile in app_user table with full name and phone
         const userProfile = {
           id: data.user.id,
@@ -94,13 +94,13 @@ export default function SignupPage() {
           console.error("Profile creation error:", profileError);
         }
 
-        // Success! Go to dashboard
+        // Success! Cookies are set automatically, just redirect
         router.push("/dashboard");
+        router.refresh(); // Force a refresh to update middleware auth state
       }
     } catch (err: any) {
       setError(err.message || "Failed to sign up. Please try again.");
       console.error("Signup error:", err);
-    } finally {
       setLoading(false);
     }
   };
