@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserTools, executeTool } from "@/lib/composio-client";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * Test endpoint to verify Composio tools work
- * GET /api/composio/test-tools?userId=default&toolkit=REDDIT
+ * 
+ * SECURITY: Requires authentication - uses authenticated user ID
+ * 
+ * GET /api/composio/test-tools?toolkit=REDDIT
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, user) => {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId") || "default";
     const toolkit = searchParams.get("toolkit") || "REDDIT";
+
+    // Use authenticated user ID (never trust userId from query params)
+    const userId = user.id;
 
     console.log(`\n🧪 [TEST] Testing ${toolkit} tools for user: ${userId}`);
 
@@ -40,5 +46,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

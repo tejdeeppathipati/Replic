@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeTool, hasActiveConnection } from "@/lib/composio-client";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/composio/post-tweet
  * Posts a tweet to Twitter using Composio
  * 
- * Body: { userId: string, text: string }
+ * SECURITY: Requires authentication - uses authenticated user ID
+ * 
+ * Body: { text: string }
  * Returns: { success: boolean, tweetId?: string, url?: string }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
-    const { userId, text } = body;
+    const { text } = body;
+
+    // Use authenticated user ID (never trust userId from request body)
+    const userId = user.id;
 
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`🐦 [POST TWEET] Request received`);
@@ -20,10 +26,10 @@ export async function POST(request: NextRequest) {
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
     // Validate input
-    if (!userId || !text) {
+    if (!text) {
       console.error("❌ [POST TWEET] Missing required fields");
       return NextResponse.json(
-        { error: "userId and text are required" },
+        { error: "text is required" },
         { status: 400 }
       );
     }
@@ -171,5 +177,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractBrandInfoFromWebsite } from "@/lib/claude-scraper";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * POST /api/scrape-brand-info
  * Scrapes website and extracts brand information using Claude Haiku
+ * 
+ * SECURITY: Requires authentication
  *
  * Request body:
  * {
  *   "websiteUrl": "https://example.com"
  * }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     // Parse request
     const body = await request.json();
@@ -63,4 +66,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

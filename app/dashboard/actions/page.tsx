@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,12 +49,13 @@ const TONE_OPTIONS = [
 ];
 
 export default function ActionsPage() {
-  const { currentProject } = useProjects();
+  const { currentProject, isLoading: projectsLoading } = useProjects();
   const brandId = currentProject?.id || "";
 
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -66,27 +67,73 @@ export default function ActionsPage() {
   });
 
   // Fetch actions
-  const fetchActions = async () => {
-    if (!brandId) return;
+  const fetchActions = useCallback(async () => {
+    if (!brandId) {
+      setLoading(false);
+      setActions([]);
+      setError(null);
+      return;
+    }
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/actions/list?brandId=${brandId}`);
+      setError(null);
+      
+      // Get auth token for API call
+      const { createSupabaseClient } = await import('@/lib/supabase');
+      const supabase = createSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session. Please log in again.');
+      }
+
+      const response = await fetch(`/api/actions/list?brandId=${brandId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
 
       if (data.success) {
         setActions(data.actions || []);
+        setError(null);
+      } else {
+        throw new Error(data.error || "Failed to fetch actions");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch actions:", error);
+      setError(error.message || "Failed to load actions. Please refresh the page.");
+      setActions([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchActions();
   }, [brandId]);
+
+  // Wait for projects to load before fetching actions
+  useEffect(() => {
+    // Don't fetch if projects are still loading
+    if (projectsLoading) {
+      return;
+    }
+
+    // If no brandId after projects loaded, show empty state
+    if (!brandId) {
+      setLoading(false);
+      setActions([]);
+      return;
+    }
+
+    // Fetch actions when brandId is available and projects are loaded
+    fetchActions();
+  }, [brandId, projectsLoading, fetchActions]);
 
   // Create action
   const handleCreate = async (e: React.FormEvent) => {
@@ -203,10 +250,24 @@ export default function ActionsPage() {
     if (!confirm(`Post this action now?\n\n"${action.title}"`)) return;
 
     try {
+      // Get auth token for API call
+      const { createSupabaseClient } = await import('@/lib/supabase');
+      const supabase = createSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        alert("❌ Error: No active session. Please log in again.");
+        return;
+      }
+
       const response = await fetch("/api/actions/post-now", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ id: action.id }),
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -382,11 +443,27 @@ export default function ActionsPage() {
         </Card>
       )}
 
-      {/* Pending Actions */}
-      {loading ? (
+      {/* Loading State */}
+      {projectsLoading ? (
         <div className="text-center py-12 text-neutral-500 font-mono">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          Loading projects...
+        </div>
+      ) : loading ? (
+        <div className="text-center py-12 text-neutral-500 font-mono">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
           Loading actions...
         </div>
+      ) : error ? (
+        <Card className="p-6 border-red-200 bg-red-50">
+          <div className="text-center">
+            <p className="text-red-800 font-mono mb-4">{error}</p>
+            <Button onClick={fetchActions} variant="outline" className="font-mono">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </Card>
       ) : (
         <>
           <div>

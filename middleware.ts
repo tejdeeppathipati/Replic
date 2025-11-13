@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
     '/signup',
     '/forgot-password',
     '/reset-password',
-    '/api/composio/post-tweet', // Internal service endpoint
+    // Note: /api/composio/post-tweet is now protected and requires authentication
   ];
 
   const isPublicRoute = publicRoutes.some(route => {
@@ -36,11 +36,18 @@ export async function middleware(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-    // Get auth token from cookies
-    const authCookie = request.cookies.get('sb-access-token');
+    // Get auth token from Authorization header first (for service-to-service calls)
+    const authHeader = request.headers.get('Authorization');
+    let authToken: string | undefined = authHeader?.replace('Bearer ', '');
 
-    if (!authCookie) {
-      // No auth cookie - redirect to login
+    // Fall back to cookie if no header token (for browser requests)
+    if (!authToken) {
+      const authCookie = request.cookies.get('sb-access-token');
+      authToken = authCookie?.value;
+    }
+
+    if (!authToken) {
+      // No auth token - redirect to login
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
@@ -51,8 +58,8 @@ export async function middleware(request: NextRequest) {
       auth: { persistSession: false },
     });
 
-    // Verify the session
-    const { data: { user }, error } = await supabase.auth.getUser(authCookie.value);
+    // Verify the session (authToken is guaranteed to be string here)
+    const { data: { user }, error } = await supabase.auth.getUser(authToken);
 
     if (error || !user) {
       // Invalid session - redirect to login

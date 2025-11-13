@@ -20,19 +20,78 @@ export default function LoginPage() {
 
   // Check if user is already logged in and redirect to dashboard
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = getSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
 
-      if (session) {
-        // Use window.location for full page reload to ensure middleware runs
-        window.location.href = "/dashboard";
-      } else {
+    const checkAuth = async () => {
+      try {
+        // First, quickly check if cookie exists (fast check)
+        const hasCookie = document.cookie.includes('sb-access-token=');
+        if (hasCookie) {
+          console.log("✅ Auth cookie found, redirecting to dashboard...");
+          // Use window.location for full page reload to ensure middleware runs
+          window.location.href = "/dashboard";
+          return;
+        }
+
+        // If no cookie, check Supabase session (might be in localStorage)
+        const supabase = getSupabaseBrowserClient();
+        
+        // Set a timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            console.warn("⚠️ Auth check timeout - proceeding to login form");
+            setIsCheckingAuth(false);
+          }
+        }, 2000); // 2 second timeout
+
+        // Try to get session
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        // Clear timeout since we got a response
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        if (!isMounted) return;
+
+        if (error) {
+          console.error("❌ Error getting session:", error);
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        if (session) {
+          console.log("✅ Session found, redirecting to dashboard...");
+          // Use window.location for full page reload to ensure middleware runs
+          window.location.href = "/dashboard";
+          return; // Don't set isCheckingAuth to false, we're redirecting
+        }
+
+        // No session found - show login form
         setIsCheckingAuth(false);
+      } catch (error) {
+        console.error("❌ Error checking auth:", error);
+        // On error, show login form
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
+      } finally {
+        // Clear timeout if it's still pending
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       }
     };
 
     checkAuth();
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {

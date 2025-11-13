@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/composio/post-reddit
  * Posts to Reddit using Composio
  * 
+ * SECURITY: Requires authentication - uses authenticated user ID
+ * 
  * Body: { 
- *   userId: string, 
  *   subreddit: string,
  *   title: string,
  *   kind: "self" | "link",
@@ -15,10 +17,13 @@ import { NextRequest, NextResponse } from "next/server";
  * }
  * Returns: { success: boolean, postId?: string }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
-    const { userId, subreddit, title, kind, text, url, flair_id } = body;
+    const { subreddit, title, kind, text, url, flair_id } = body;
+
+    // Use authenticated user ID (never trust userId from request body)
+    const userId = user.id;
 
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`🔶 [POST REDDIT] Request received`);
@@ -29,10 +34,10 @@ export async function POST(request: NextRequest) {
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
     // Validate input
-    if (!userId || !subreddit || !title || !kind) {
+    if (!subreddit || !title || !kind) {
       console.error("❌ [POST REDDIT] Missing required fields");
       return NextResponse.json(
-        { error: "userId, subreddit, title, and kind are required" },
+        { error: "subreddit, title, and kind are required" },
         { status: 400 }
       );
     }
@@ -208,5 +213,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

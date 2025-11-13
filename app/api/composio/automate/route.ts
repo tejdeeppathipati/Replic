@@ -5,28 +5,33 @@ import {
   autoPostMultiPlatform,
   checkUserConnections,
 } from "@/lib/composio-automation";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/composio/automate
  * Automates social media posts using Claude + Composio
  * 
+ * SECURITY: Requires authentication - uses authenticated user ID
+ * 
  * Body: {
- *   userId: string,
  *   action: "tweet" | "reddit" | "multi",
  *   companyInfo: string,
  *   topic: string,
  *   subreddit?: string (required for reddit and multi)
  * }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
-    const { userId, action, companyInfo, topic, subreddit } = body;
+    const { action, companyInfo, topic, subreddit } = body;
+
+    // Use authenticated user ID (never trust userId from request body)
+    const userId = user.id;
 
     // Validate input
-    if (!userId || !action || !companyInfo || !topic) {
+    if (!action || !companyInfo || !topic) {
       return NextResponse.json(
-        { error: "Missing required fields: userId, action, companyInfo, topic" },
+        { error: "Missing required fields: action, companyInfo, topic" },
         { status: 400 }
       );
     }
@@ -110,5 +115,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

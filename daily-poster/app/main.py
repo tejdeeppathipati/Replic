@@ -425,6 +425,7 @@ class PostActionRequest(BaseModel):
     description: Optional[str] = Field(None, description="Action description")
     context: Optional[str] = Field(None, description="Additional context")
     tone: Optional[str] = Field("engaging", description="Tone")
+    auth_token: Optional[str] = Field(None, description="Auth token for API calls")
 
 
 @app.post("/post-action")
@@ -437,6 +438,10 @@ async def post_action(request: PostActionRequest):
     print(f"\n🎯 [POST ACTION] Processing action: {request.action_id}")
     print(f"   Type: {request.action_type}")
     print(f"   Goal: {request.title}")
+    print(f"   Auth token provided: {'Yes' if request.auth_token else 'No'}")
+    if request.auth_token:
+        print(f"   Auth token length: {len(request.auth_token)}")
+        print(f"   Auth token preview: {request.auth_token[:20]}...")
     
     try:
         # 1. Fetch brand data
@@ -491,6 +496,19 @@ async def post_action(request: PostActionRequest):
                 raise Exception("User ID not found in brand data")
 
             api_url = f"{settings.api_base_url}/api/composio/post-tweet"
+            
+            # Prepare headers with auth token if provided
+            headers = {"Content-Type": "application/json"}
+            if request.auth_token:
+                headers["Authorization"] = f"Bearer {request.auth_token}"
+                print(f"🔑 [POST ACTION] Using auth token (length: {len(request.auth_token)})")
+                print(f"🔑 [POST ACTION] Token preview: {request.auth_token[:30]}...")
+            else:
+                print(f"⚠️  [POST ACTION] No auth token provided - API call may fail")
+            
+            print(f"📡 [POST ACTION] Calling {api_url}")
+            print(f"📡 [POST ACTION] Headers: {list(headers.keys())}")
+            
             async with httpx.AsyncClient() as client:
                 api_response = await client.post(
                     api_url,
@@ -498,11 +516,24 @@ async def post_action(request: PostActionRequest):
                         "userId": user_id,
                         "text": post_text
                     },
-                    timeout=30.0
+                    headers=headers,
+                    timeout=30.0,
+                    follow_redirects=False  # Don't follow redirects so we can see the actual response
                 )
 
+                print(f"📥 [POST ACTION] Response status: {api_response.status_code}")
+                print(f"📥 [POST ACTION] Response headers: {dict(api_response.headers)}")
+
+                if api_response.status_code == 307 or api_response.status_code == 302:
+                    # Redirect means authentication failed
+                    redirect_location = api_response.headers.get("Location", "unknown")
+                    print(f"❌ [POST ACTION] Authentication failed - redirected to: {redirect_location}")
+                    raise Exception(f"Authentication failed: API redirected to {redirect_location}. Auth token may be missing or invalid.")
+                
                 if api_response.status_code != 200:
-                    raise Exception(f"API returned {api_response.status_code}: {api_response.text}")
+                    error_text = api_response.text[:500] if api_response.text else "No error message"
+                    print(f"❌ [POST ACTION] API error: {error_text}")
+                    raise Exception(f"API returned {api_response.status_code}: {error_text}")
                 
                 response = api_response.json()
                 

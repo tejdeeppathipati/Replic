@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withAuth, verifyBrandOwnership } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/auto-replies/find-and-reply
  * Find best tweet to reply to, generate reply, and post it
  * 
+ * SECURITY: Requires authentication and brand ownership verification
+ * 
  * Body: { brandId: string }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
     const { brandId } = body;
@@ -15,6 +18,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "brandId is required" },
         { status: 400 }
+      );
+    }
+
+    // Verify brand ownership
+    try {
+      await verifyBrandOwnership(brandId, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: "You do not have access to this brand" },
+        { status: 403 }
       );
     }
 
@@ -140,5 +153,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

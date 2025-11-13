@@ -170,12 +170,14 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
   // Load projects on mount and when auth state changes
   useEffect(() => {
     let mounted = true;
+    let authSubscription: any = null;
+    let loadTimeout: NodeJS.Timeout | null = null;
 
-    // Initial load with a larger delay to ensure auth is ready
+    // Initial load with a smaller delay to ensure auth is ready
     const initialLoad = async () => {
       console.log("🔄 Waiting for Supabase auth to be initialized...");
-      // Longer delay to ensure Supabase auth is fully initialized and session is available
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Reduced delay - 100ms should be enough for auth to initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
       if (mounted) {
         console.log("⏱️  Auth initialization delay complete, loading projects...");
         await loadProjects();
@@ -185,17 +187,26 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
     initialLoad();
 
     // Listen to auth state changes and reload projects when user logs in
+    // Use a debounce to prevent multiple rapid reloads
+    let reloadTimeout: NodeJS.Timeout | null = null;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: any) => {
         if (!mounted) return;
 
         console.log("Auth state changed in ProjectsProvider:", event, session?.user?.id);
+        
+        // Clear any pending reload
+        if (reloadTimeout) {
+          clearTimeout(reloadTimeout);
+        }
+
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
-          // Reload projects when user signs in or token is refreshed
-          console.log("User signed in or token refreshed, reloading projects...");
-          // Wait a moment to ensure the session is fully set before querying
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await loadProjects();
+          // Debounce reload to prevent multiple rapid reloads
+          reloadTimeout = setTimeout(async () => {
+            if (!mounted) return;
+            console.log("User signed in or token refreshed, reloading projects...");
+            await loadProjects();
+          }, 200); // 200ms debounce
         } else if (event === 'SIGNED_OUT') {
           // Clear projects when user signs out
           console.log("User signed out, clearing projects");
@@ -208,7 +219,15 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+      }
+      if (reloadTimeout) {
+        clearTimeout(reloadTimeout);
+      }
     };
   }, [loadProjects, supabase]);
 

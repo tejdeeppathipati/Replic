@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Send, ArrowUpRight, Clock, Target, Heart, Repeat2, MessageCircle, Eye, TrendingUp, Loader2, ExternalLink } from "lucide-react";
@@ -60,8 +60,54 @@ export default function DashboardPage() {
     console.log("📝 Projects available:", projects.length);
   }, []);
 
+  // Fetch engagement metrics (defined first since fetchStats depends on it)
+  const fetchEngagement = useCallback(async (tweetIds: string[]) => {
+    if (!brandId || tweetIds.length === 0) return;
+
+    try {
+      setEngagementLoading(true);
+
+      // Get the auth token from Supabase
+      const { createSupabaseClient } = await import('@/lib/supabase');
+      const supabase = createSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      const response = await fetch("/api/dashboard/engagement", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ brandId, tweetIds }),
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setEngagement(data.totals);
+
+        // Merge engagement data into recent posts
+        setRecentPosts((prev) =>
+          prev.map((post) => ({
+            ...post,
+            engagement: post.tweet_id ? data.metrics[post.tweet_id] : undefined,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch engagement:", error);
+    } finally {
+      setEngagementLoading(false);
+    }
+  }, [brandId]);
+
   // Fetch dashboard stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     if (!brandId) {
       setLoading(false);
       setStats(null);
@@ -86,6 +132,7 @@ export default function DashboardPage() {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -117,58 +164,23 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Fetch engagement metrics
-  const fetchEngagement = async (tweetIds: string[]) => {
-    if (!brandId || tweetIds.length === 0) return;
-
-    try {
-      setEngagementLoading(true);
-
-      // Get the auth token from Supabase
-      const { createSupabaseClient } = await import('@/lib/supabase');
-      const supabase = createSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        throw new Error('No active session');
-      }
-
-      const response = await fetch("/api/dashboard/engagement", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ brandId, tweetIds }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setEngagement(data.totals);
-
-        // Merge engagement data into recent posts
-        setRecentPosts((prev) =>
-          prev.map((post) => ({
-            ...post,
-            engagement: post.tweet_id ? data.metrics[post.tweet_id] : undefined,
-          }))
-        );
-      }
-    } catch (error) {
-      console.error("Failed to fetch engagement:", error);
-    } finally {
-      setEngagementLoading(false);
-    }
-  };
+  }, [brandId, fetchEngagement]);
 
   useEffect(() => {
+    // Wait for projects to load before fetching stats
+    if (projectsLoading) {
+      return;
+    }
+    
     if (brandId) {
       fetchStats();
+    } else {
+      // No brand selected - clear stats
+      setLoading(false);
+      setStats(null);
+      setRecentPosts([]);
     }
-  }, [brandId]);
+  }, [brandId, projectsLoading, fetchStats]);
 
   // Auto-refresh every 2 minutes
   useEffect(() => {

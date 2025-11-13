@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useProjects } from "@/lib/projects-context";
 import { MessageSquare, Send, CheckCircle, XCircle, Clock, TrendingUp, BarChart3 } from "lucide-react";
 
@@ -46,7 +46,7 @@ type AutoReplyStats = {
 };
 
 export default function AutoRepliesPage() {
-  const { currentProject, isLoading } = useProjects();
+  const { currentProject, isLoading: projectsLoading } = useProjects();
   const brandId = currentProject?.id || "";
 
   const [stats, setStats] = useState<AutoReplyStats | null>(null);
@@ -63,16 +63,8 @@ export default function AutoRepliesPage() {
   } | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  useEffect(() => {
-    if (brandId) {
-      fetchData();
-      // Refresh every 5 seconds for live updates
-      const interval = setInterval(fetchData, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [brandId]);
-
-  const fetchData = async () => {
+  // Fetch data function - defined BEFORE useEffect that uses it
+  const fetchData = useCallback(async () => {
     if (!brandId) {
       setLoading(false);
       return;
@@ -81,29 +73,55 @@ export default function AutoRepliesPage() {
     try {
       setLoading(true);
 
+      // Get auth token for API calls
+      const { createSupabaseClient } = await import('@/lib/supabase');
+      const supabase = createSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session. Please log in again.');
+      }
+
+      const authHeaders = {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      };
+
       // Fetch stats
-      const statsRes = await fetch(`/api/auto-replies/stats?brandId=${brandId}`);
+      const statsRes = await fetch(`/api/auto-replies/stats?brandId=${brandId}`, {
+        headers: authHeaders,
+        credentials: "include",
+      });
       const statsData = await statsRes.json();
       if (statsData.success) {
         setStats(statsData.stats);
       }
 
       // Fetch queue
-      const queueRes = await fetch(`/api/auto-replies/queue?brandId=${brandId}`);
+      const queueRes = await fetch(`/api/auto-replies/queue?brandId=${brandId}`, {
+        headers: authHeaders,
+        credentials: "include",
+      });
       const queueData = await queueRes.json();
       if (queueData.success) {
         setQueue(queueData.replies || []);
       }
 
       // Fetch posted
-      const postedRes = await fetch(`/api/auto-replies/posted?brandId=${brandId}&limit=20`);
+      const postedRes = await fetch(`/api/auto-replies/posted?brandId=${brandId}&limit=20`, {
+        headers: authHeaders,
+        credentials: "include",
+      });
       const postedData = await postedRes.json();
       if (postedData.success) {
         setPosted(postedData.replies || []);
       }
 
       // Fetch live activity
-      const activityRes = await fetch(`/api/auto-replies/activity?brandId=${brandId}&limit=30`);
+      const activityRes = await fetch(`/api/auto-replies/activity?brandId=${brandId}&limit=30`, {
+        headers: authHeaders,
+        credentials: "include",
+      });
       const activityData = await activityRes.json();
       if (activityData.success) {
         setActivities(activityData.activities || []);
@@ -113,7 +131,29 @@ export default function AutoRepliesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [brandId]);
+
+  // useEffect to fetch data when brandId or projectsLoading changes
+  useEffect(() => {
+    // Wait for projects to load before fetching data
+    if (projectsLoading) {
+      return;
+    }
+    
+    if (brandId) {
+      fetchData();
+      // Refresh every 5 seconds for live updates
+      const interval = setInterval(fetchData, 5000);
+      return () => clearInterval(interval);
+    } else {
+      // No brand selected - clear data
+      setLoading(false);
+      setStats(null);
+      setQueue([]);
+      setPosted([]);
+      setActivities([]);
+    }
+  }, [brandId, projectsLoading, fetchData]);
 
   const handleFindAndReply = async () => {
     if (!brandId) {
@@ -125,11 +165,24 @@ export default function AutoRepliesPage() {
       setFindingReply(true);
       setMessage(null);
 
+      // Get auth token for API call
+      const { createSupabaseClient } = await import('@/lib/supabase');
+      const supabase = createSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session. Please log in again.');
+      }
+
       // Step 1: Find and generate reply
       const response = await fetch("/api/auto-replies/find-and-reply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ brandId }),
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -179,15 +232,28 @@ export default function AutoRepliesPage() {
       setFindingReply(true);
       setMessage(null);
 
+      // Get auth token for API call
+      const { createSupabaseClient } = await import('@/lib/supabase');
+      const supabase = createSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session. Please log in again.');
+      }
+
       // Post the reply
       const response = await fetch(`/api/auto-replies/post-reply`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           brandId,
           tweetId: previewData.tweet.id,
           replyText: previewData.reply.text,
         }),
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -218,7 +284,24 @@ export default function AutoRepliesPage() {
     }
   };
 
-  if (!brandId && !isLoading) {
+  // Show loading state while projects are loading
+  if (projectsLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center gap-3">
+          <MessageSquare className="h-6 w-6 text-neutral-700 dark:text-neutral-200" />
+          <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">Auto-Replies</h1>
+        </div>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 dark:border-white mx-auto"></div>
+          <p className="mt-4 text-neutral-600 dark:text-neutral-400">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no brand selected
+  if (!brandId) {
     return (
       <div className="space-y-8">
         <div className="flex items-center gap-3">
@@ -235,6 +318,7 @@ export default function AutoRepliesPage() {
     );
   }
 
+  // Show loading state while fetching data
   if (loading && !stats) {
     return (
       <div className="space-y-8">

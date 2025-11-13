@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserTools } from "@/lib/composio-client";
+import { withAuth } from "@/lib/api-auth";
 
 /**
  * Diagnostic endpoint to list available tools
- * GET /api/composio/list-tools?userId=default&toolkit=TWITTER
+ * 
+ * SECURITY: Requires authentication - uses authenticated user ID
+ * 
+ * GET /api/composio/list-tools?toolkit=TWITTER
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, user) => {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId") || "default";
     const toolkit = searchParams.get("toolkit") || "TWITTER";
+
+    // Use authenticated user ID (never trust userId from query params)
+    const userId = user.id;
 
     console.log(`\n🔍 [LIST TOOLS] Fetching ${toolkit} tools for user: ${userId}`);
 
@@ -60,5 +66,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

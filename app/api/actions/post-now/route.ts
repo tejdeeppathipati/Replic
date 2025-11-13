@@ -60,6 +60,28 @@ export const POST = withAuth(async (request: NextRequest, user) => {
 
     console.log(`📤 [POST ACTION NOW] Calling daily-poster service...`);
 
+    // Get auth token from request to pass to Python service
+    // Use the same method as getAuthenticatedUser to extract the token
+    const authHeader = request.headers.get("authorization");
+    let authToken = authHeader?.replace("Bearer ", "");
+    
+    // If no header token, get from cookie (same as getAuthenticatedUser does)
+    if (!authToken) {
+      authToken = request.cookies.get("sb-access-token")?.value || null;
+    }
+
+    if (!authToken) {
+      console.error("❌ [POST ACTION NOW] No auth token found in request");
+      console.error("   Authorization header:", request.headers.get("authorization") ? "Present" : "Missing");
+      console.error("   sb-access-token cookie:", request.cookies.get("sb-access-token") ? "Present" : "Missing");
+      return NextResponse.json(
+        { error: "Authentication token required" },
+        { status: 401 }
+      );
+    }
+    
+    console.log(`🔑 [POST ACTION NOW] Auth token extracted (length: ${authToken.length}, source: ${authHeader ? 'header' : 'cookie'})`);
+
     // Call daily-poster service to generate and post
     const dailyPosterUrl = process.env.DAILY_POSTER_URL || "http://localhost:8500";
 
@@ -78,8 +100,11 @@ export const POST = withAuth(async (request: NextRequest, user) => {
           description: actionData.description,
           context: actionData.context,
           tone: actionData.tone,
+          auth_token: authToken, // Pass auth token to Python service
         }),
       });
+      
+      console.log(`📤 [POST ACTION NOW] Sent request to daily-poster with auth_token: ${authToken ? 'Yes' : 'No'}`);
     } catch (fetchError: any) {
       console.error(`❌ [POST ACTION NOW] Failed to connect to daily-poster service at ${dailyPosterUrl}`);
       console.error(`   Error: ${fetchError.message}`);

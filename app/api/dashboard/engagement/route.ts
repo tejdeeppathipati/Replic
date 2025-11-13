@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withAuth, verifyBrandOwnership } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/dashboard/engagement
  * Fetch engagement metrics for tweets from X API
  * 
+ * SECURITY: Requires authentication and brand ownership verification
+ * 
  * Body: { brandId: string, tweetIds: string[] }
  * Returns: { tweetId: { likes, retweets, replies, views } }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
     const { brandId, tweetIds } = body;
@@ -19,11 +22,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📊 [ENGAGEMENT] Fetching metrics for ${tweetIds.length} tweets`);
+    // Verify brand ownership
+    try {
+      await verifyBrandOwnership(brandId, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: "You do not have access to this brand" },
+        { status: 403 }
+      );
+    }
+
+    console.log(`📊 [ENGAGEMENT] Fetching metrics for ${tweetIds.length} tweets for brand: ${brandId}`);
 
     // Get Twitter connections to find the connected account
+    // Use authenticated user ID, not brandId
     const { getUserConnections } = await import("@/lib/composio-client");
-    const connections = await getUserConnections(brandId);
+    const connections = await getUserConnections(user.id);
     
     const twitterConnection = connections.find((conn: any) => {
       let integrationStr = "";
@@ -63,7 +77,7 @@ export async function POST(request: NextRequest) {
     // Fetch engagement metrics for each tweet
     // We'll use Composio's Twitter tools to get tweet details
     const { getUserTools, executeTool } = await import("@/lib/composio-client");
-    const tools = await getUserTools(brandId, ["TWITTER"]);
+    const tools = await getUserTools(user.id, ["TWITTER"]);
     
     // Find the get tweet tool
     const getTweetTool = tools.find((t: any) => {
@@ -103,7 +117,7 @@ export async function POST(request: NextRequest) {
       try {
         const result = await executeTool(
           toolSlug,
-          brandId,
+          user.id,
           { id: tweetId },
           twitterConnection.id
         );
@@ -179,5 +193,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
