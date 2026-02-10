@@ -67,7 +67,7 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     
     // If no header token, get from cookie (same as getAuthenticatedUser does)
     if (!authToken) {
-      authToken = request.cookies.get("sb-access-token")?.value || null;
+      authToken = request.cookies.get("sb-access-token")?.value || undefined;
     }
 
     if (!authToken) {
@@ -148,4 +148,3 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     );
   }
 });
-

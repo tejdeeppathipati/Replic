@@ -4,9 +4,9 @@ import { withAuth } from "@/lib/api-auth";
 
 /**
  * API Route: POST /api/composio/connect
- * Initiates OAuth connection for Twitter or Reddit
+ * Initiates OAuth connection for Twitter, Reddit, or LinkedIn
  * 
- * Body: { userId: string, integration: "TWITTER" | "REDDIT" }
+ * Body: { integration: "TWITTER" | "REDDIT" | "LINKEDIN" }
  * Returns: { redirectUrl: string, connectionId: string }
  */
 export const POST = withAuth(async (request: NextRequest, user) => {
@@ -22,9 +22,9 @@ export const POST = withAuth(async (request: NextRequest, user) => {
       );
     }
 
-    if (!["TWITTER", "REDDIT"].includes(integration)) {
+    if (!["TWITTER", "REDDIT", "LINKEDIN"].includes(integration)) {
       return NextResponse.json(
-        { error: "integration must be TWITTER or REDDIT" },
+        { error: "integration must be TWITTER, REDDIT, or LINKEDIN" },
         { status: 400 }
       );
     }

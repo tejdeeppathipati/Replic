@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { syncServerSession } from "./auth";
 import { getSupabaseBrowserClient } from "./supabase-browser";
 
 export interface ProjectSettings {
@@ -189,11 +190,33 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
     // Listen to auth state changes and reload projects when user logs in
     // Use a debounce to prevent multiple rapid reloads
     let reloadTimeout: NodeJS.Timeout | null = null;
+    let sessionSyncTimeout: NodeJS.Timeout | null = null;
+
+    const scheduleSessionSync = (session: any) => {
+      if (!session?.access_token) return;
+
+      if (sessionSyncTimeout) {
+        clearTimeout(sessionSyncTimeout);
+      }
+
+      sessionSyncTimeout = setTimeout(() => {
+        syncServerSession(session.access_token, session.refresh_token, session.expires_in).catch(
+          (e) => {
+            console.error("Failed to sync server session cookies:", e);
+          }
+        );
+      }, 150);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: any) => {
         if (!mounted) return;
 
         console.log("Auth state changed in ProjectsProvider:", event, session?.user?.id);
+
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+          scheduleSessionSync(session);
+        }
         
         // Clear any pending reload
         if (reloadTimeout) {
@@ -227,6 +250,9 @@ export const ProjectsProvider = ({ children }: { children: React.ReactNode }) =>
       }
       if (reloadTimeout) {
         clearTimeout(reloadTimeout);
+      }
+      if (sessionSyncTimeout) {
+        clearTimeout(sessionSyncTimeout);
       }
     };
   }, [loadProjects, supabase]);

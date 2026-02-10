@@ -1,23 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase";
+import { withBrandAuth } from "@/lib/api-auth";
 
 /**
  * API Route: GET /api/auto-replies/queue?brandId=xxx
  * Get queued replies for a brand
  */
-export async function GET(request: NextRequest) {
+export const GET = withBrandAuth(async (request: NextRequest, user, brandId) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const brandId = searchParams.get("brandId");
+    console.log(`📥 [AUTO-REPLIES QUEUE] Fetching queue for brand: ${brandId} by user: ${user.id}`);
 
-    if (!brandId) {
-      return NextResponse.json(
-        { error: "brandId is required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createSupabaseClient();
+    const supabase = createSupabaseAdminClient();
 
     const { data, error } = await supabase
       .from("reply_queue")
@@ -63,5 +56,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

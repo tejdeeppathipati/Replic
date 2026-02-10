@@ -11,6 +11,7 @@ function getComposioClient(): Composio {
       toolkitVersions: {
         twitter: "20251024_00", // Version from Composio Playground
         reddit: "20251024_00",  // Reddit version (same as Twitter)
+        linkedin: "20251024_00",
       },
     });
   }
@@ -28,10 +29,11 @@ export const composioClient = new Proxy({} as Composio, {
 export const AUTH_CONFIGS = {
   TWITTER: process.env.TWITTER_AUTH_CONFIG_ID || "",
   REDDIT: process.env.REDDIT_AUTH_CONFIG_ID || "",
+  LINKEDIN: process.env.LINKEDIN_AUTH_CONFIG_ID || "",
 } as const;
 
 // Integration type
-export type IntegrationType = "TWITTER" | "REDDIT";
+export type IntegrationType = "TWITTER" | "REDDIT" | "LINKEDIN";
 
 /**
  * Initiates OAuth connection for a user
@@ -231,9 +233,10 @@ export async function hasActiveConnection(
     
     console.log(`📋 [CHECK CONNECTION] Found ${connections.length} total connections`);
     
-    const integrationMap = {
+    const integrationMap: Record<IntegrationType, string> = {
       TWITTER: "twitter",
       REDDIT: "reddit",
+      LINKEDIN: "linkedin",
     };
     
     const searchTerm = integrationMap[integration];
@@ -298,4 +301,3 @@ export async function disconnectAccount(connectedAccountId: string) {
     throw error;
   }
 }
-

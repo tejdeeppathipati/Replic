@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withAuth, verifyBrandOwnership } from "@/lib/api-auth";
+import { createSupabaseAdminClient } from "@/lib/supabase";
 
 /**
  * API Route: POST /api/auto-replies/post-reply
@@ -6,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
  * 
  * Body: { brandId: string, tweetId: string, replyText: string }
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
     const { brandId, tweetId, replyText } = body;
@@ -18,11 +20,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify brand ownership
+    try {
+      await verifyBrandOwnership(brandId, user.id);
+    } catch {
+      return NextResponse.json(
+        { error: "You do not have access to this brand" },
+        { status: 403 }
+      );
+    }
+
     const autoReplierUrl = process.env.AUTO_REPLIER_URL || "http://localhost:8600";
     
     // Get original tweet info for context
-    const { createSupabaseClient } = await import("@/lib/supabase");
-    const supabase = createSupabaseClient();
+    const supabase = createSupabaseAdminClient();
     
     const { data: tweetData } = await supabase
       .from("monitored_tweets")
@@ -68,5 +79,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

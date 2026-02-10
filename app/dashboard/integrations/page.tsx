@@ -10,7 +10,7 @@ type Integration = {
   name: string;
   description: string;
   icon: string;
-  type: "TWITTER" | "REDDIT" | "WHATSAPP" | "IMESSAGE";
+  type: "TWITTER" | "REDDIT" | "LINKEDIN" | "WHATSAPP" | "IMESSAGE";
   isComposio: boolean;
 };
 
@@ -21,6 +21,14 @@ const integrations: Integration[] = [
     description: "Connect your X account to post and engage",
     icon: "/icons/twitter.png",
     type: "TWITTER",
+    isComposio: true,
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    description: "Publish posts to your LinkedIn profile",
+    icon: "/icons/linkedin.svg",
+    type: "LINKEDIN",
     isComposio: true,
   },
   {
@@ -207,9 +215,16 @@ export default function IntegrationsPage() {
                           appName.includes("reddit") ||
                           appUniqueId.includes("reddit") ||
                           integrationId.includes("reddit");
+
+          const isLinkedIn = integration.includes("linkedin") ||
+                            integrationSlug.includes("linkedin") ||
+                            appName.includes("linkedin") ||
+                            appUniqueId.includes("linkedin") ||
+                            integrationId.includes("linkedin");
           
           console.log(`🔍 [UI] Match check for ${conn.id}:`, {
             isTwitter,
+            isLinkedIn,
             isReddit,
             integration,
             integrationSlug,
@@ -227,6 +242,14 @@ export default function IntegrationsPage() {
               username: username,
             };
             console.log("✅ [UI] Twitter ACTIVE connection mapped:", status["twitter"]);
+          } else if (isLinkedIn && conn.status === "ACTIVE") {
+            status["linkedin"] = {
+              connected: true,
+              loading: false,
+              accountId: conn.id,
+              username: username,
+            };
+            console.log("✅ [UI] LinkedIn ACTIVE connection mapped:", status["linkedin"]);
           } else if (isReddit && conn.status === "ACTIVE") {
             status["reddit"] = {
               connected: true,
@@ -235,11 +258,11 @@ export default function IntegrationsPage() {
               username: username,
             };
             console.log("✅ [UI] Reddit ACTIVE connection mapped:", status["reddit"]);
-          } else if (isTwitter || isReddit) {
-            const type = isTwitter ? "Twitter" : "Reddit";
+          } else if (isTwitter || isLinkedIn || isReddit) {
+            const type = isTwitter ? "Twitter" : isLinkedIn ? "LinkedIn" : "Reddit";
             console.log(`⏳ [UI] ${type} connection ${conn.id} is ${conn.status} (not ACTIVE yet)`);
           } else {
-            console.log(`⚠️ [UI] Connection ${conn.id} not recognized as Twitter or Reddit`);
+            console.log(`⚠️ [UI] Connection ${conn.id} not recognized as Twitter, LinkedIn, or Reddit`);
           }
         });
 

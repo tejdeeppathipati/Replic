@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storeBrandQAEmbeddings } from "@/lib/qa-embeddings";
-import { createSupabaseAdminClient } from "@/lib/supabase";
+import { withAuth, verifyBrandOwnership } from "@/lib/api-auth";
 
 /**
  * POST /api/embeddings/store-qa
@@ -8,13 +8,12 @@ import { createSupabaseAdminClient } from "@/lib/supabase";
  * Stores embeddings for brand Q&A responses
  * Called when the user completes onboarding
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json();
 
     const {
       brandAgentId,
-      userId,
       qaResponseId,
       brandSummary,
       brandVoice,
@@ -24,12 +23,22 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!brandAgentId || !userId || !qaResponseId || !questions) {
+    if (!brandAgentId || !qaResponseId || !questions) {
       return NextResponse.json(
         {
-          error: "Missing required fields: brandAgentId, userId, qaResponseId, questions",
+          error: "Missing required fields: brandAgentId, qaResponseId, questions",
         },
         { status: 400 }
+      );
+    }
+
+    // Verify the brand belongs to the authenticated user (never trust userId from the body).
+    try {
+      await verifyBrandOwnership(brandAgentId, user.id);
+    } catch {
+      return NextResponse.json(
+        { error: "You do not have access to this brand" },
+        { status: 403 }
       );
     }
 
@@ -55,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Store the embeddings
     const embeddingIds = await storeBrandQAEmbeddings({
       brandAgentId,
-      userId,
+      userId: user.id,
       qaResponseId,
       brandSummary,
       brandVoice,
@@ -86,4 +95,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
