@@ -1,81 +1,95 @@
 # Replic
 
-LLM-based marketing agent platform with a Next.js dashboard + a set of background services for:
-- generating content (posts + replies),
-- routing risky actions through human approval (WhatsApp / iMessage),
-- executing actions on X/Reddit via tool calling (Composio),
-- executing actions on X/Reddit/LinkedIn via tool calling (Composio),
-- storing multi-tenant state in Postgres (Supabase) with RLS.
+Replic is an **AI-powered social media automation platform for startups** that generates, approves, and posts on-brand content across social platforms while preserving human control through chat-based approvals and safety guardrails.
 
-## Repository layout
+The system is designed to help small teams maintain a consistent social presence without hiring a full marketing team.
 
-### Web app (this repo root)
-- `app/` – Next.js App Router pages + API routes
-- `components/` – UI + dashboard components
-- `lib/` – shared TS utilities (Supabase, auth, Composio, etc.)
-- `middleware.ts` – auth middleware (protects dashboard + API routes)
-- `supabase_rls_policies.sql` – database RLS policies (run in Supabase)
-- `supabase_agent_schema.sql` – agent runs + Postgres rate limiter (optional, run in Supabase)
+---
 
-### Services
-All non-Next services live under:
-- `services/approval-gateway/` – FastAPI human-in-the-loop approval service
-- `services/agent-orchestrator/` – LangGraph agent workflow (async + HITL approvals)
-- `services/auto-replier/` – monitors tweets, scores relevance, generates replies
-- `services/daily-poster/` – generates scheduled posts and/or posts actions now
-- `services/llm-generator/` – shared LLM generation helpers (Python)
-- `services/x-fetcher/` – X polling / ingestion service
-- `services/x-oauth/` – X OAuth helper service
-- `services/imessage-bridge/` – Node service bridging iMessage → webhook
+## Problem
 
-### Tools
-- `tools/` – one-off utilities (local/dev)
+Early-stage founders face recurring challenges with social media:
 
-## Local development
+- Time spent manually writing posts and replies  
+- Missed engagement opportunities while building product  
+- Inconsistent brand voice  
+- Risky automation that can damage credibility  
 
-### Web
-```bash
-npm install
-npm run dev
-```
-Note: Next.js 16 requires Node `>=20.9.0` (see `package.json` `engines` / `.nvmrc`).
+Fully autonomous bots feel spammy, while manual posting does not scale.
 
-### Services
-Each service is self-contained (see its own README / requirements).
-Example:
-```bash
-cd services/approval-gateway
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-make test
-make run
-```
+---
 
-## Architecture (high level)
+## Solution
 
-### A) Login → dashboard
-1. Client signs in via Supabase Auth.
-2. Web app registers an httpOnly session cookie via `/api/auth/register-session`.
-3. `middleware.ts` enforces auth for `/dashboard/*` and protected `/api/*`.
+Replic combines **AI-driven content generation** with **human-in-the-loop approvals** and strict safety controls.
 
-### B) Generate + post “action”
-1. User creates an action in the dashboard.
-2. API verifies brand ownership.
-3. API calls `services/daily-poster/` to generate and post.
-4. Persist results to Postgres.
+**Key principles:**
+- AI assists, humans approve  
+- Short, contextual, on-brand content  
+- Guardrails over growth hacking  
+- Auditability over black-box automation  
 
-### C) Auto-replies
-1. API calls `services/auto-replier/` to monitor + score.
-2. Draft is generated and presented in the dashboard.
-3. If configured, route through `services/approval-gateway/` for human approval.
+---
 
-### D) Human-in-the-loop approvals
-1. A candidate reply is sent to WhatsApp/iMessage.
-2. Human approves/edits/skips.
-3. Decision is forwarded back to the core flow and executed.
+## What Replic Does
 
-## Security (important)
-- Make sure Supabase RLS policies are enabled by running `supabase_rls_policies.sql`.
-- If you want the LangGraph agent run history + Postgres rate limiting, run `supabase_agent_schema.sql`.
-- All brand-scoped API routes must enforce ownership checks (server-side), not just UI filtering.
+### Watch & Engage
+Monitors X (Twitter) and Reddit for:
+- Brand mentions  
+- Watched keywords  
+- Specific accounts or threads  
+
+### Auto-Reply (On-Brand)
+- Generates short, context-aware replies  
+- Matches a predefined brand persona  
+- Enforces character limits and tone constraints  
+
+### Daily Posting
+- Generates 2–3 authentic posts per brand per day  
+- Optional image or meme suggestions  
+- Can run fully automated or approval-gated  
+
+### Chat-Based Approval
+- One-tap approve, edit, or reject via:
+  - iMessage (Photon iMessage Kit)
+  - WhatsApp  
+- No dashboard friction  
+
+### Audit Trail
+- Every generated or posted item is logged  
+- Includes source, decision, timestamp, and platform  
+
+
+---
+
+## Core Components
+
+### Frontend
+- Next.js 14  
+- TypeScript  
+- Shadcn UI  
+- Supabase (real-time updates)  
+
+### Backend Services (Python / FastAPI)
+- **Ingress Workers:** Poll X and Reddit APIs  
+- **Rate Limiter & Scheduler:** Token buckets and backoff strategies  
+- **Safety & Relevance Filters:**
+  - Keyword and handle matching  
+  - Topic exclusion (politics, NSFW)  
+  - Duplicate suppression  
+- **LLM Orchestrator:**
+  - Persona-driven prompts  
+  - Short-form output (<300 characters)  
+- **Approval Gateway:**
+  - iMessage / WhatsApp webhooks  
+  - Approve, edit, or reject commands  
+
+### AI
+- xAI Grok for content generation  
+
+### Data & Infrastructure
+- Supabase Postgres (brands, keywords, approvals, activity)  
+- Redis (queues, rate-limit tokens)  
+- Composio for X integration  
+
+
