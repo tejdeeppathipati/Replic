@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase";
+import { withBrandAuth } from "@/lib/api-auth";
 
 /**
  * API Route: GET /api/auto-replies/stats?brandId=xxx
  * Get auto-reply statistics for a brand
  */
-export async function GET(request: NextRequest) {
+export const GET = withBrandAuth(async (request: NextRequest, user, brandId) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const brandId = searchParams.get("brandId");
+    console.log(`📈 [AUTO-REPLIES STATS] Fetching stats for brand: ${brandId} by user: ${user.id}`);
 
-    if (!brandId) {
-      return NextResponse.json(
-        { error: "brandId is required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createSupabaseClient();
+    // Use admin client after ownership verification to avoid relying on RLS configuration.
+    const supabase = createSupabaseAdminClient();
 
     // Get counts from reply_queue
     const { count: queuedCount } = await supabase
@@ -96,5 +90,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});

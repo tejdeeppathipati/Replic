@@ -1,74 +1,50 @@
 /**
  * Supabase Browser Client (Simplified)
  *
- * Standard production Supabase client with cookie-based session management
+ * Standard production Supabase client for client-side usage.
  */
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './supabase';
+import { NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_URL } from './env-public';
 
 // Singleton client instance
 let client: ReturnType<typeof createClient<Database>> | null = null;
 
 /**
- * Get the Supabase browser client (with automatic cookie handling)
- * This manages sessions automatically using browser storage
+ * Get the Supabase browser client.
+ * Sessions are persisted in browser storage; server session cookies (for middleware) are managed separately.
  */
 export function getSupabaseBrowserClient() {
   if (client) {
     return client;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Missing Supabase environment variables');
   }
 
-  // Create browser client with session persistence
+  try {
+    const parsed = new URL(supabaseUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      throw new Error(`Invalid protocol: ${parsed.protocol}`);
+    }
+  } catch (e) {
+    throw new Error(
+      'Invalid NEXT_PUBLIC_SUPABASE_URL. Expected a full URL like "https://<project-ref>.supabase.co".'
+    );
+  }
+
+  // Create browser client with session persistence.
+  // NOTE: Do not write auth tokens into `document.cookie` here. We set httpOnly cookies via `/api/auth/register-session`.
   client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: {
-        getItem: (key) => {
-          if (typeof window === 'undefined') return null;
-          const value = localStorage.getItem(key);
-          // Also sync to cookie when reading
-          if (value) {
-            try {
-              const parsed = JSON.parse(value);
-              if (parsed.access_token) {
-                document.cookie = `sb-access-token=${parsed.access_token}; path=/; max-age=604800; SameSite=Lax`;
-              }
-            } catch (e) {
-              // Value might not be JSON
-            }
-          }
-          return value;
-        },
-        setItem: (key, value) => {
-          if (typeof window === 'undefined') return;
-          localStorage.setItem(key, value);
-          // Extract access token and set cookie (MUST match middleware cookie name)
-          try {
-            const parsed = JSON.parse(value);
-            if (parsed.access_token) {
-              document.cookie = `sb-access-token=${parsed.access_token}; path=/; max-age=604800; SameSite=Lax`;
-            }
-          } catch (e) {
-            // Value might not be JSON
-          }
-        },
-        removeItem: (key) => {
-          if (typeof window === 'undefined') return;
-          localStorage.removeItem(key);
-          // Remove the cookie
-          document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        },
-      },
     },
   });
 

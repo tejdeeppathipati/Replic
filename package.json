@@ -2,6 +2,9 @@
   "name": "prodigypm",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -29,9 +32,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "tailwind-merge": "^3.3.1",
-    "lightningcss": "^1.28.1",
-    "lightningcss-linux-x64-gnu": "^1.28.1",
-    "@tailwindcss/oxide-linux-x64-gnu": "^4.0.0"
+    "lightningcss": "^1.28.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

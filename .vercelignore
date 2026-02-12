@@ -7,12 +7,5 @@ node_modules/
 .DS_Store
 *.md
 !README.md
-daily-poster/
-auto-replier/
-approval-gateway/
-x-fetcher/
-x-oauth/
-llm-generator/
-core-orchestrator/
-x-poster/
-
+services/
+tools/

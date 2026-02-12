@@ -1,24 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/supabase";
+import { withBrandAuth } from "@/lib/api-auth";
 
 /**
  * API Route: GET /api/auto-replies/activity?brandId=xxx&limit=50
  * Get recent activity (monitored tweets, generated replies, posted replies)
  */
-export async function GET(request: NextRequest) {
+export const GET = withBrandAuth(async (request: NextRequest, user, brandId) => {
   try {
     const { searchParams } = new URL(request.url);
-    const brandId = searchParams.get("brandId");
     const limit = parseInt(searchParams.get("limit") || "50");
+    console.log(`🧾 [AUTO-REPLIES ACTIVITY] Fetching activity for brand: ${brandId} by user: ${user.id}`);
 
-    if (!brandId) {
-      return NextResponse.json(
-        { error: "brandId is required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createSupabaseClient();
+    const supabase = createSupabaseAdminClient();
 
     // Get recent monitored tweets
     const { data: monitoredTweets } = await supabase
@@ -120,5 +114,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
+});
