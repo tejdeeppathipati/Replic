@@ -61,10 +61,10 @@ Monitors X (Twitter) and Reddit for:
 
 
 ---
+---
 ##Architecture
 <img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/2ab08c8f-0867-4dbf-b426-f8245e85bf66" />
-
-
+---
 ## Core Components
 
 ### Frontend
